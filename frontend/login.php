@@ -1,104 +1,106 @@
 <?php
-// --- Partie PHP de Traitement ---
+require_once '../includes/config.php';
+require_once '../includes/functions.php';
 
-// Le require_once doit être le premier car il inclut la fonction session_start() dans config.php
-// CORRECTION : L'inclusion de head.php doit se faire APRES le traitement (en bas) car head.php contient le début du HTML.
-require_once '../includes/config.php'; // Inclut la connexion BDD et DÉMARRE la session
-
-// Vérifier si le formulaire a été soumis
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $pdo = get_pdo();
-    
-    // 1. Validation de base des champs
-    if (empty($email) || empty($password)) {
-        // En cas d'erreur, stocker le message d'erreur et rediriger vers la page elle-même
-        $_SESSION['error'] = "Veuillez remplir tous les champs.";
-        header('Location: login.php');
-        exit();
-    }
-
-    // 2. Préparation de la requête pour récupérer l'utilisateur par email
-    $stmt = $pdo->prepare("SELECT id, nom, email, mot_de_passe, role FROM users WHERE email = :email");
-    $stmt->execute(['email' => $email]);
-    $user = $stmt->fetch();
-    
-    // 3. Vérification de l'utilisateur et du mot de passe
-    if ($user && password_verify($password, $user['mot_de_passe'])) {
-        
-        // --- Connexion réussie : Création de la session ---
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user_name'] = $user['nom'];
-        $_SESSION['user_role'] = $user['role'];
-        
-        // 4. Redirection selon le rôle
-        $role = $user['role'];
-        
-        if ($role == 'administrateur') {
-            header('Location: ../espaces/administrateur/dashboard.php');
-        } elseif ($role == 'gestionnaire') {
-            header('Location: ../espaces/gestionnaire/dashboard.php');
-        } else { // Réclamant (client, étudiant, etc.)
-            header('Location: ../espaces/reclamant/dashboard.php');
-        }
-        exit(); // Très important d'arrêter l'exécution après la redirection
-
+// Si l'utilisateur est déjà connecté, le rediriger
+if (is_logged_in()) {
+    if (has_role('administrateur')) {
+        redirect('../espaces/administrateur/index.php');
+    } elseif (has_role('gestionnaire')) {
+        redirect('../espaces/gestionnaire/index.php');
     } else {
-        // Échec de l'authentification
-        $_SESSION['error'] = "Email ou mot de passe incorrect.";
-        header('Location: login.php');
-        exit();
+        redirect('../espaces/reclamant/index.php');
     }
 }
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = sanitize_input($_POST['email']);
+    $password = $_POST['password'];
+
+    if (empty($email) || empty($password)) {
+        $error = "Veuillez remplir tous les champs.";
+    } else {
+        $pdo = get_pdo();
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if ($user && password_verify($password, $user['password'])) {
+            // Authentification réussie
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_name'] = $user['nom'];
+            $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_role'] = $user['role'];
+
+            // Redirection selon le rôle
+            if ($user['role'] === 'administrateur') {
+                redirect('../espaces/administrateur/index.php');
+            } elseif ($user['role'] === 'gestionnaire') {
+                redirect('../espaces/gestionnaire/index.php');
+            } else {
+                redirect('../espaces/reclamant/index.php');
+            }
+        } else {
+            $error = "Email ou mot de passe incorrect.";
+        }
+    }
+}
+
+include '../includes/head.php';
 ?>
 
-<?php include '../includes/head.php'; // Inclut le début du HTML, les balises meta et les liens Bootstrap ?>
+<body class="bg-light d-flex align-items-center justify-content-center" style="min-height: 100vh;">
 
-<body class="bg-light d-flex align-items-center justify-content-center vh-100">
-    
-    <main class="form-signin w-100 m-auto p-4 shadow-lg bg-white rounded">
-        
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger text-center" role="alert">
-                <?= htmlspecialchars($_SESSION['error']); ?>
-            </div>
-            <?php unset($_SESSION['error']); // Supprime le message pour qu'il ne s'affiche qu'une fois ?>
-        <?php endif; ?>
-        
-        <form method="POST" action="login.php"> 
-            <div class="text-center mb-4">
-                 <i class="bi bi-person-circle display-4 text-primary mb-3"></i>
-                 <h1 class="h3 fw-bold text-dark">Accès Sécurisé</h1>
-                 <p class="text-muted">Veuillez entrer vos identifiants pour continuer.</p>
-            </div>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow-lg border-0 rounded-4">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-person-circle text-primary" style="font-size: 3rem;"></i>
+                            <h2 class="fw-bold mt-3">Connexion</h2>
+                            <p class="text-muted">Accédez à votre espace</p>
+                        </div>
 
-            <div class="form-floating mb-3">
-                <input type="email" class="form-control" id="floatingInput" name="email" placeholder="name@example.com" required>
-                <label for="floatingInput"><i class="bi bi-envelope me-2"></i>Adresse Email</label>
-            </div>
+                        <?php if ($error): ?>
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i> <?php echo $error; ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        <?php endif; ?>
 
-            <div class="form-floating mb-4">
-                <input type="password" class="form-control" id="floatingPassword" name="password" placeholder="Mot de passe" required>
-                <label for="floatingPassword"><i class="bi bi-lock me-2"></i>Mot de passe</label>
-            </div>
+                        <form method="POST" action="login.php">
+                            <div class="mb-3">
+                                <label for="email" class="form-label fw-bold">Adresse Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" class="form-control border-start-0 ps-0" id="email" name="email" placeholder="nom@exemple.com" required>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="password" class="form-label fw-bold">Mot de passe</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
+                                    <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="********" required>
+                                </div>
+                            </div>
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-lg fw-bold">Se connecter</button>
+                            </div>
+                        </form>
 
-            <button class="w-100 btn btn-lg btn-primary" type="submit">
-                <i class="bi bi-box-arrow-in-right me-1"></i> Se connecter
-            </button>
-            
-            <hr class="my-4">
-            <div class="text-center">
-                <a href="soumission.php" class="text-decoration-none text-warning fw-bold">
-                    <i class="bi bi-chat-dots me-1"></i> Nouveau ? Déposez une réclamation sans connexion
-                </a>
+                        <div class="text-center mt-4">
+                            <p class="text-muted mb-0">Pas encore de compte ? <a href="register.php" class="text-primary fw-bold text-decoration-none">Créer un compte</a></p>
+                            <p class="mt-2"><a href="index.php" class="text-secondary text-decoration-none"><i class="bi bi-arrow-left"></i> Retour à l'accueil</a></p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <p class="mt-5 mb-3 text-muted text-center">&copy; 2025 Système de Réclamations</p>
-        </form>
-    </main>
+        </div>
+    </div>
 
-    <?php include '../includes/footer.php'; // Inclut le pied de page HTML et le JS Bootstrap ?>
+    <?php include '../includes/footer.php'; ?>
 </body>
 </html>
