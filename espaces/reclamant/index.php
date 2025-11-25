@@ -13,18 +13,18 @@ $stmt = $pdo->prepare("SELECT
     SUM(CASE WHEN statut = 'en_cours' THEN 1 ELSE 0 END) as en_cours,
     SUM(CASE WHEN statut = 'traite' THEN 1 ELSE 0 END) as traite,
     SUM(CASE WHEN statut = 'ferme' THEN 1 ELSE 0 END) as ferme
-    FROM claims WHERE user_id = ?");
+    FROM reclamations WHERE user_id = ?");
 $stmt->execute([$user_id]);
 $stats = $stmt->fetch();
 
 // Récupérer les dernières réclamations
 $stmt = $pdo->prepare("SELECT c.*, cat.nom as categorie_nom 
-    FROM claims c 
+    FROM reclamations c 
     JOIN categories cat ON c.category_id = cat.id 
     WHERE c.user_id = ? 
     ORDER BY c.created_at DESC");
 $stmt->execute([$user_id]);
-$claims = $stmt->fetchAll();
+$reclamations = $stmt->fetchAll();
 
 include '../../includes/head.php';
 ?>
@@ -116,20 +116,20 @@ include '../../includes/head.php';
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (count($claims) > 0): ?>
-                                <?php foreach ($claims as $claim): ?>
+                            <?php if (count($reclamations) > 0): ?>
+                                <?php foreach ($reclamations as $reclamation): ?>
                                     <tr>
-                                        <td class="ps-4 fw-bold">#<?php echo $claim['id']; ?></td>
-                                        <td><?php echo htmlspecialchars($claim['sujet']); ?></td>
-                                        <td><span class="badge bg-light text-dark border"><?php echo htmlspecialchars($claim['categorie_nom']); ?></span></td>
-                                        <td><?php echo format_date($claim['created_at']); ?></td>
+                                        <td class="ps-4 fw-bold">#<?php echo $reclamation['id']; ?></td>
+                                        <td><?php echo htmlspecialchars($reclamation['sujet']); ?></td>
+                                        <td><span class="badge bg-light text-dark border"><?php echo htmlspecialchars($reclamation['categorie_nom']); ?></span></td>
+                                        <td><?php echo format_date($reclamation['created_at']); ?></td>
                                         <td>
-                                            <span class="badge rounded-pill <?php echo get_status_badge($claim['statut']); ?>">
-                                                <?php echo get_status_label($claim['statut']); ?>
+                                            <span class="badge rounded-pill <?php echo get_status_badge($reclamation['statut']); ?>">
+                                                <?php echo get_status_label($reclamation['statut']); ?>
                                             </span>
                                         </td>
                                         <td class="text-end pe-4">
-                                            <a href="details.php?id=<?php echo $claim['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                            <a href="details.php?id=<?php echo $reclamation['id']; ?>" class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye-fill"></i> Détails
                                             </a>
                                         </td>

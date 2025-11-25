@@ -11,7 +11,7 @@ $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $date_filter = isset($_GET['date']) ? $_GET['date'] : '';
 
 $sql = "SELECT c.*, u.nom as user_name, cat.nom as category_nom 
-        FROM claims c 
+        FROM reclamations c 
         JOIN users u ON c.user_id = u.id 
         JOIN categories cat ON c.category_id = cat.id 
         WHERE 1=1";
@@ -39,7 +39,7 @@ $stmt = $pdo->query("SELECT
     COUNT(*) as total,
     SUM(CASE WHEN statut = 'en_cours' THEN 1 ELSE 0 END) as en_cours,
     SUM(CASE WHEN statut = 'traite' THEN 1 ELSE 0 END) as traite
-    FROM claims");
+    FROM reclamations");
 $stats = $stmt->fetch();
 
 include '../../includes/head.php';

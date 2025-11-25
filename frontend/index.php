@@ -1,5 +1,5 @@
 <?php // 1. Inclure la configuration (pour démarrer la session si nécessaire, et avoir la BDD)
-require_once '../includes/config.php';
+require_once '../includes/config.php'; 
 
 // 2. Inclure l'en-tête HTML (qui contient le <head> et le début du <body>)
 include '../includes/head.php'; 

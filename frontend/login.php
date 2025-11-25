@@ -2,8 +2,9 @@
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
 
-// Si l'utilisateur est déjà connecté, le rediriger
-if (is_logged_in()) {
+// Si l'utilisateur est déjà connecté et tente d'accéder au formulaire en GET, le rediriger
+// (Ne pas rediriger si POST pour permettre la soumission du formulaire)
+if (is_logged_in() && $_SERVER['REQUEST_METHOD'] === 'GET') {
     if (has_role('administrateur')) {
         redirect('../espaces/administrateur/index.php');
     } elseif (has_role('gestionnaire')) {
@@ -16,8 +17,8 @@ if (is_logged_in()) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = sanitize_input($_POST['email']);
-    $password = $_POST['password'];
+    $email = sanitize_input($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
     if (empty($email) || empty($password)) {
         $error = "Veuillez remplir tous les champs.";
@@ -27,12 +28,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
-        if ($user && password_verify($password, $user['password'])) {
+        if ($user) {
+            $stored = $user['mot_de_passe'] ?? $user['password'] ?? '';
+            $authenticated = false;
+
+            if ($stored !== '') {
+                if (password_verify($password, $stored)) {
+                    $authenticated = true;
+                } elseif (hash_equals($stored, $password)) {
+                    // Fallback for plain-text passwords stored in the DB (not recommended)
+                    $authenticated = true;
+                }
+            }
+
+            if ($authenticated) {
             // Authentification réussie
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['nom'];
-            $_SESSION['user_email'] = $user['email'];
-            $_SESSION['user_role'] = $user['role'];
+                $_SESSION['user_id'] = $user['user_id'] ?? $user['id'] ?? '';
+                $_SESSION['user_name'] = $user['nom'] ?? $user['name'] ?? '';
+                $_SESSION['user_email'] = $user['email'] ?? '';
+                // Do NOT store the password in session
+                $_SESSION['user_role'] = $user['role'] ?? '';
 
             // Redirection selon le rôle
             if ($user['role'] === 'administrateur') {
@@ -41,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect('../espaces/gestionnaire/index.php');
             } else {
                 redirect('../espaces/reclamant/index.php');
+            }
+            } else {
+                $error = "Email ou mot de passe incorrect.";
             }
         } else {
             $error = "Email ou mot de passe incorrect.";

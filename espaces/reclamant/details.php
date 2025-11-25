@@ -8,45 +8,45 @@ if (!isset($_GET['id'])) {
     redirect('index.php');
 }
 
-$claim_id = $_GET['id'];
+$reclamation_id = $_GET['id'];
 $user_id = $_SESSION['user_id'];
 $pdo = get_pdo();
 
 // Récupérer les détails de la réclamation
 $stmt = $pdo->prepare("SELECT c.*, cat.nom as categorie_nom 
-    FROM claims c 
+    FROM reclamations c 
     JOIN categories cat ON c.category_id = cat.id 
     WHERE c.id = ? AND c.user_id = ?");
-$stmt->execute([$claim_id, $user_id]);
-$claim = $stmt->fetch();
+$stmt->execute([$reclamation_id, $user_id]);
+$reclamation = $stmt->fetch();
 
-if (!$claim) {
+if (!$reclamation) {
     redirect('index.php');
 }
 
 // Récupérer les pièces jointes
-$stmt = $pdo->prepare("SELECT * FROM attachments WHERE claim_id = ?");
-$stmt->execute([$claim_id]);
+$stmt = $pdo->prepare("SELECT * FROM pieces_jointes WHERE reclamation_id = ?");
+$stmt->execute([$reclamation_id]);
 $attachments = $stmt->fetchAll();
 
 // Récupérer les commentaires (historique)
 $stmt = $pdo->prepare("SELECT c.*, u.nom as user_name, u.role as user_role 
-    FROM comments c 
+    FROM commentaires c 
     JOIN users u ON c.user_id = u.id 
-    WHERE c.claim_id = ? 
+    WHERE c.reclamation_id = ? 
     ORDER BY c.created_at ASC");
-$stmt->execute([$claim_id]);
+$stmt->execute([$reclamation_id]);
 $comments = $stmt->fetchAll();
 
 // Traitement du nouveau commentaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
     $comment = sanitize_input($_POST['comment']);
     if (!empty($comment)) {
-        $stmt = $pdo->prepare("INSERT INTO comments (claim_id, user_id, comment) VALUES (?, ?, ?)");
-        $stmt->execute([$claim_id, $user_id, $comment]);
+        $stmt = $pdo->prepare("INSERT INTO commentaires (reclamation_id, user_id, comment) VALUES (?, ?, ?)");
+        $stmt->execute([$reclamation_id, $user_id, $comment]);
         
         // Rafraîchir la page
-        redirect("details.php?id=$claim_id");
+        redirect("details.php?id=$reclamation_id");
     }
 }
 
@@ -73,22 +73,22 @@ include '../../includes/head.php';
                 <div class="card shadow-sm border-0 rounded-4 mb-4">
                     <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 fw-bold text-primary">
-                            <i class="bi bi-file-text me-2"></i>Détails de la réclamation #<?php echo $claim['id']; ?>
+                            <i class="bi bi-file-text me-2"></i>Détails de la réclamation #<?php echo $reclamation['id']; ?>
                         </h5>
-                        <span class="badge rounded-pill <?php echo get_status_badge($claim['statut']); ?> px-3 py-2">
-                            <?php echo get_status_label($claim['statut']); ?>
+                        <span class="badge rounded-pill <?php echo get_status_badge($reclamation['statut']); ?> px-3 py-2">
+                            <?php echo get_status_label($reclamation['statut']); ?>
                         </span>
                     </div>
                     <div class="card-body p-4">
-                        <h4 class="fw-bold mb-3"><?php echo htmlspecialchars($claim['sujet']); ?></h4>
+                        <h4 class="fw-bold mb-3"><?php echo htmlspecialchars($reclamation['sujet']); ?></h4>
                         
                         <div class="mb-4 text-muted small">
-                            <span class="me-3"><i class="bi bi-calendar3 me-1"></i> Créé le <?php echo format_date($claim['created_at']); ?></span>
-                            <span class="me-3"><i class="bi bi-tag me-1"></i> <?php echo htmlspecialchars($claim['categorie_nom']); ?></span>
+                            <span class="me-3"><i class="bi bi-calendar3 me-1"></i> Créé le <?php echo format_date($reclamation['created_at']); ?></span>
+                            <span class="me-3"><i class="bi bi-tag me-1"></i> <?php echo htmlspecialchars($reclamation['categorie_nom']); ?></span>
                         </div>
 
                         <div class="p-3 bg-light rounded-3 mb-4 border">
-                            <p class="mb-0" style="white-space: pre-line;"><?php echo htmlspecialchars($claim['description']); ?></p>
+                            <p class="mb-0" style="white-space: pre-line;"><?php echo htmlspecialchars($reclamation['description']); ?></p>
                         </div>
 
                         <?php if (count($attachments) > 0): ?>
@@ -141,9 +141,9 @@ include '../../includes/head.php';
                         </div>
 
                         <!-- Formulaire de réponse -->
-                        <?php if ($claim['statut'] !== 'ferme'): ?>
+                        <?php if ($reclamation['statut'] !== 'ferme'): ?>
                             <hr class="my-4">
-                            <form method="POST" action="details.php?id=<?php echo $claim_id; ?>">
+                            <form method="POST" action="details.php?id=<?php echo $reclamation_id; ?>">
                                 <div class="mb-3">
                                     <label for="comment" class="form-label fw-bold">Ajouter un message</label>
                                     <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="Votre message..." required></textarea>
@@ -173,21 +173,21 @@ include '../../includes/head.php';
                                 <i class="bi bi-info-circle text-primary me-3 fs-5"></i>
                                 <div>
                                     <small class="d-block text-muted">Statut actuel</small>
-                                    <span class="fw-bold"><?php echo get_status_label($claim['statut']); ?></span>
+                                    <span class="fw-bold"><?php echo get_status_label($reclamation['statut']); ?></span>
                                 </div>
                             </li>
                             <li class="mb-3 d-flex align-items-center">
                                 <i class="bi bi-calendar-event text-primary me-3 fs-5"></i>
                                 <div>
                                     <small class="d-block text-muted">Date de création</small>
-                                    <span class="fw-bold"><?php echo format_date($claim['created_at']); ?></span>
+                                    <span class="fw-bold"><?php echo format_date($reclamation['created_at']); ?></span>
                                 </div>
                             </li>
                             <li class="d-flex align-items-center">
                                 <i class="bi bi-arrow-repeat text-primary me-3 fs-5"></i>
                                 <div>
                                     <small class="d-block text-muted">Dernière mise à jour</small>
-                                    <span class="fw-bold"><?php echo format_date($claim['updated_at']); ?></span>
+                                    <span class="fw-bold"><?php echo format_date($reclamation['updated_at']); ?></span>
                                 </div>
                             </li>
                         </ul>

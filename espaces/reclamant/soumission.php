@@ -25,9 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
 
             // Insérer la réclamation
-            $stmt = $pdo->prepare("INSERT INTO claims (user_id, category_id, sujet, description) VALUES (?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO reclamations (user_id, category_id, sujet, description) VALUES (?, ?, ?, ?)");
             $stmt->execute([$user_id, $category_id, $sujet, $description]);
-            $claim_id = $pdo->lastInsertId();
+            $reclamation_id = $pdo->lastInsertId();
 
             // Gestion de l'upload de fichier
             if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (in_array($file_ext, $allowed_ext)) {
                     if (move_uploaded_file($_FILES['attachment']['tmp_name'], $target_path)) {
-                        $stmt = $pdo->prepare("INSERT INTO attachments (claim_id, file_path) VALUES (?, ?)");
-                        $stmt->execute([$claim_id, $file_name]);
+                        $stmt = $pdo->prepare("INSERT INTO pieces_jointes (reclamation_id, file_path) VALUES (?, ?)");
+                        $stmt->execute([$reclamation_id, $file_name]);
                     } else {
                         $error = "Erreur lors du téléchargement du fichier.";
                     }

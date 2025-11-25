@@ -12,11 +12,29 @@ $success = '';
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     $id_to_delete = $_GET['delete'];
     if ($id_to_delete != $_SESSION['user_id']) { // Empêcher de se supprimer soi-même
-        $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
-        if ($stmt->execute([$id_to_delete])) {
-            $success = "Utilisateur supprimé avec succès.";
-        } else {
-            $error = "Erreur lors de la suppression.";
+        try {
+            // Commencer une transaction pour garantir l'intégrité
+            $pdo->beginTransaction();
+            
+            // 1. Supprimer les commentaires de l'utilisateur
+            $stmt = $pdo->prepare("DELETE FROM commentaires WHERE user_id = ?");
+            $stmt->execute([$id_to_delete]);
+            
+            // 2. Supprimer les réclamations de l'utilisateur
+            $stmt = $pdo->prepare("DELETE FROM reclamations WHERE user_id = ?");
+            $stmt->execute([$id_to_delete]);
+            
+            // 3. Supprimer l'utilisateur
+            $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
+            $stmt->execute([$id_to_delete]);
+            
+            // Valider la transaction
+            $pdo->commit();
+            $success = "Utilisateur et ses données associées supprimés avec succès.";
+        } catch (PDOException $e) {
+            // Annuler la transaction en cas d'erreur
+            $pdo->rollBack();
+            $error = "Erreur lors de la suppression : " . $e->getMessage();
         }
     } else {
         $error = "Vous ne pouvez pas supprimer votre propre compte.";
@@ -34,13 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Tous les champs sont obligatoires.";
     } else {
         // Vérifier email
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->fetch()) {
             $error = "Cet email est déjà utilisé.";
         } else {
+            // Détecter le nom correct de la colonne password
+            $passwordCol = 'password';
+            $colCheck = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='".DB_NAME."' AND TABLE_NAME='users'")->fetchAll(PDO::FETCH_COLUMN);
+            if (in_array('mot_de_passe', $colCheck)) {
+                $passwordCol = 'mot_de_passe';
+            } elseif (in_array('pwd', $colCheck)) {
+                $passwordCol = 'pwd';
+            }
+            
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("INSERT INTO users (nom, email, password, role) VALUES (?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO users (nom, email, " . $passwordCol . ", role) VALUES (?, ?, ?, ?)");
             if ($stmt->execute([$nom, $email, $hashed_password, $role])) {
                 $success = "Utilisateur ajouté avec succès.";
             } else {
@@ -50,8 +77,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Récupérer tous les utilisateurs
-$users = $pdo->query("SELECT * FROM users ORDER BY created_at DESC")->fetchAll();
+// Récupérer tous les utilisateurs — détecter la colonne de date et d'ID correctes
+$dateCol = 'user_id'; // Fallback par défaut (ordre par ID)
+$colCheck = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='".DB_NAME."' AND TABLE_NAME='users'")->fetchAll(PDO::FETCH_COLUMN);
+if (in_array('created_at', $colCheck)) {
+    $dateCol = 'created_at';
+} elseif (in_array('date_creation', $colCheck)) {
+    $dateCol = 'date_creation';
+} elseif (in_array('created_date', $colCheck)) {
+    $dateCol = 'created_date';
+}
+$users = $pdo->query("SELECT * FROM users WHERE role != 'administrateur' ORDER BY " . $dateCol . " DESC")->fetchAll();
 
 include '../../includes/head.php';
 ?>
@@ -162,9 +198,9 @@ include '../../includes/head.php';
                                         <tbody>
                                             <?php foreach ($users as $user): ?>
                                                 <tr>
-                                                    <td class="ps-4 fw-bold">#<?php echo $user['id']; ?></td>
-                                                    <td><?php echo htmlspecialchars($user['nom']); ?></td>
-                                                    <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                                    <td class="ps-4 fw-bold">#<?php echo htmlspecialchars($user['user_id'] ?? $user['id'] ?? ''); ?></td>
+                                                    <td><?php echo htmlspecialchars($user['nom'] ?? ''); ?></td>
+                                                    <td><?php echo htmlspecialchars($user['email'] ?? ''); ?></td>
                                                     <td>
                                                         <?php 
                                                         $badge_color = 'bg-secondary';
@@ -172,11 +208,11 @@ include '../../includes/head.php';
                                                         if ($user['role'] == 'gestionnaire') $badge_color = 'bg-info text-dark';
                                                         if ($user['role'] == 'reclamant') $badge_color = 'bg-success';
                                                         ?>
-                                                        <span class="badge <?php echo $badge_color; ?>"><?php echo ucfirst($user['role']); ?></span>
+                                                        <span class="badge <?php echo $badge_color; ?>"><?php echo ucfirst($user['role'] ?? ''); ?></span>
                                                     </td>
                                                     <td class="text-end pe-4">
-                                                        <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                                            <a href="users.php?delete=<?php echo $user['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
+                                                        <?php $uid = $user['user_id'] ?? $user['id'] ?? null; if ($uid && $uid != $_SESSION['user_id']): ?>
+                                                            <a href="users.php?delete=<?php echo htmlspecialchars($uid); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
                                                                 <i class="bi bi-trash-fill"></i>
                                                             </a>
                                                         <?php endif; ?>
