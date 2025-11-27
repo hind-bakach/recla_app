@@ -84,9 +84,13 @@ include '../../includes/head.php';
                     <a href="users.php" class="list-group-item list-group-item-action fw-bold">
                         <i class="bi bi-people-fill me-2"></i>Utilisateurs
                     </a>
+                    <a href="reclamations.php" class="list-group-item list-group-item-action fw-bold">
+                        <i class="bi bi-inbox-fill me-2"></i>Réclamations
+                    </a>
                     <a href="categories.php" class="list-group-item list-group-item-action active fw-bold" aria-current="true">
                         <i class="bi bi-tags-fill me-2"></i>Catégories
                     </a>
+                    
                 </div>
             </div>
 

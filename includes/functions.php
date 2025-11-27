@@ -68,7 +68,13 @@ function format_date($date) {
  */
 function get_status_badge($status) {
     switch ($status) {
+        case 'soumis': return 'bg-info text-white';
         case 'en_cours': return 'bg-warning text-dark';
+        case 'en_attente': return 'bg-secondary text-white';
+        case 'resolu': return 'bg-success text-white';
+        case 'closed': return 'bg-success text-white';
+        case 'rejete': return 'bg-danger text-white';
+        case 'archive': return 'bg-dark text-white';
         case 'traite': return 'bg-success';
         case 'ferme': return 'bg-secondary';
         case 'attente_info': return 'bg-info text-dark';
@@ -81,7 +87,13 @@ function get_status_badge($status) {
  */
 function get_status_label($status) {
     switch ($status) {
+        case 'soumis': return 'Soumis';
         case 'en_cours': return 'En cours';
+        case 'en_attente': return 'En attente';
+        case 'resolu': return 'Résolu';
+        case 'closed': return 'Fermé';
+        case 'rejete': return 'Rejeté';
+        case 'archive': return 'Archivé';
         case 'traite': return 'Traité';
         case 'ferme': return 'Fermé';
         case 'attente_info': return 'Attente d\'info';

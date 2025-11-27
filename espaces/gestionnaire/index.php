@@ -10,25 +10,57 @@ $pdo = get_pdo();
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $date_filter = isset($_GET['date']) ? $_GET['date'] : '';
 
-$sql = "SELECT c.*, u.nom as user_name, cat.nom as category_nom 
-        FROM reclamations c 
-        JOIN users u ON c.user_id = u.id 
-        JOIN categories cat ON c.category_id = cat.id 
-        WHERE 1=1";
-
 $params = [];
 
+// Detect column names dynamically to avoid "unknown column" errors
+$getCols = function($table) use ($pdo) {
+    $rows = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='".DB_NAME."' AND TABLE_NAME='".addslashes($table)."'")->fetchAll(PDO::FETCH_COLUMN);
+    return $rows ?: [];
+};
+
+$reclamCols = $getCols('reclamations');
+$reclamTable = 'reclamations';
+$reclamIdCol = in_array('reclam_id', $reclamCols) ? 'reclam_id' : (in_array('id', $reclamCols) ? 'id' : ($reclamCols[0] ?? 'id'));
+$reclamUserCol = in_array('user_id', $reclamCols) ? 'user_id' : (in_array('userId', $reclamCols) ? 'userId' : (in_array('user', $reclamCols) ? 'user' : 'user_id'));
+$reclamStatusCol = in_array('statut', $reclamCols) ? 'statut' : (in_array('status', $reclamCols) ? 'status' : 'statut');
+$reclamDateCol = in_array('created_at', $reclamCols) ? 'created_at' : (in_array('date_soumission', $reclamCols) ? 'date_soumission' : ($reclamCols[1] ?? $reclamCols[0] ?? 'created_at'));
+$reclamCatCol = in_array('categorie_id', $reclamCols) ? 'categorie_id' : (in_array('category_id', $reclamCols) ? 'category_id' : (in_array('cat_id', $reclamCols) ? 'cat_id' : null));
+$reclamObjetCol = in_array('objet', $reclamCols) ? 'objet' : (in_array('sujet', $reclamCols) ? 'sujet' : (in_array('title', $reclamCols) ? 'title' : 'objet'));
+
+$userCols = $getCols('users');
+$userIdCol = in_array('user_id', $userCols) ? 'user_id' : (in_array('id', $userCols) ? 'id' : ($userCols[0] ?? 'id'));
+$userNameCol = in_array('nom', $userCols) ? 'nom' : (in_array('name', $userCols) ? 'name' : ($userCols[1] ?? $userIdCol));
+
+$catCols = $getCols('categories');
+$catIdCol = in_array('categorie_id', $catCols) ? 'categorie_id' : (in_array('id', $catCols) ? 'id' : ($catCols[0] ?? 'id'));
+$catNameCol = in_array('nom_categorie', $catCols) ? 'nom_categorie' : (in_array('nom', $catCols) ? 'nom' : (in_array('name', $catCols) ? 'name' : ($catCols[1] ?? $catIdCol)));
+
+// Build SQL with stable aliases used by the template
+$sql = "SELECT ";
+$sql .= "c." . $reclamIdCol . " AS id, ";
+$sql .= "c." . $reclamUserCol . " AS user_id, ";
+$sql .= "u." . $userNameCol . " AS user_name, ";
+$sql .= "c." . $reclamObjetCol . " AS sujet, ";
+$sql .= "c.description AS description, ";
+$sql .= "cat." . $catNameCol . " AS category_nom, ";
+$sql .= "c." . $reclamDateCol . " AS created_at, ";
+$sql .= "c." . $reclamStatusCol . " AS statut ";
+$sql .= "FROM " . $reclamTable . " c ";
+$sql .= "LEFT JOIN users u ON c." . $reclamUserCol . " = u." . $userIdCol . " ";
+$sql .= "LEFT JOIN categories cat ON c." . ($reclamCatCol ?? $catIdCol) . " = cat." . $catIdCol . " ";
+$sql .= "WHERE 1=1";
+
 if ($status_filter) {
-    $sql .= " AND c.statut = ?";
+    $sql .= " AND c." . $reclamStatusCol . " = ?";
     $params[] = $status_filter;
 }
 
 if ($date_filter) {
-    $sql .= " AND DATE(c.created_at) = ?";
+    $sql .= " AND DATE(c." . $reclamDateCol . ") = ?";
     $params[] = $date_filter;
 }
 
-$sql .= " ORDER BY c.created_at DESC";
+$sql .= " ORDER BY c." . $reclamDateCol . " DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
