@@ -36,7 +36,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("INSERT INTO users (nom, email, password, role) VALUES (?, ?, ?, 'reclamant')");
             
             if ($stmt->execute([$nom, $email, $hashed_password])) {
-                $success = "Compte créé avec succès ! Vous pouvez maintenant vous connecter.";
+                // Auto-login the new user
+                $pdo = get_pdo();
+                $stmt2 = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+                $stmt2->execute([$email]);
+                $newUser = $stmt2->fetch();
+                if ($newUser) {
+                    $_SESSION['user_id'] = $newUser['user_id'] ?? $newUser['id'] ?? '';
+                    $_SESSION['user_name'] = $newUser['nom'] ?? $newUser['name'] ?? '';
+                    $_SESSION['user_email'] = $newUser['email'] ?? '';
+                    $_SESSION['user_role'] = $newUser['role'] ?? 'reclamant';
+
+                    // If there is a pending submission, process it
+                    if (!empty($_SESSION['pending_submission'])) {
+                        redirect('../espaces/reclamant/soumission.php?process_pending=1');
+                    }
+
+                    // Otherwise redirect to reclamant dashboard
+                    redirect('../espaces/reclamant/index.php');
+                } else {
+                    $success = "Compte créé avec succès ! Vous pouvez maintenant vous connecter.";
+                }
             } else {
                 $error = "Une erreur est survenue lors de l'inscription.";
             }

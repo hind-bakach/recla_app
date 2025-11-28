@@ -9,8 +9,64 @@ $error = '';
 $success = '';
 
 // Récupérer les catégories
-$stmt = $pdo->query("SELECT * FROM categories ORDER BY nom ASC");
+// Helper: détecte la première colonne existante parmi des candidats
+function detect_column($pdo, $table, $candidates) {
+    $check = $pdo->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?");
+    foreach ($candidates as $col) {
+        $check->execute([$table, $col]);
+        if ($check->fetchColumn() > 0) {
+            return $col;
+        }
+    }
+    return null;
+}
+
+$catNameCol = detect_column($pdo, 'categories', ['nom', 'nom_categorie', 'categorie_nom', 'name', 'libelle']);
+
+$catPk = detect_column($pdo, 'categories', ['id', 'categorie_id', 'category_id', 'cat_id']);
+
+// Construire SELECT sûr en aliasant les colonnes attendues vers 'id' et 'nom'
+$selectParts = [];
+if ($catPk) {
+    $selectParts[] = "cat.`$catPk` AS id";
+} else {
+    $selectParts[] = "0 AS id";
+}
+if ($catNameCol) {
+    $selectParts[] = "cat.`$catNameCol` AS nom";
+} else {
+    $selectParts[] = "'' AS nom";
+}
+$selectParts[] = "cat.*";
+
+$sql = "SELECT " . implode(', ', $selectParts) . " FROM categories cat ORDER BY nom ASC";
+$stmt = $pdo->query($sql);
 $categories = $stmt->fetchAll();
+
+// If redirected to process a pending submission, prepare POST data first
+$processing_pending = false;
+if (isset($_GET['process_pending']) && $_GET['process_pending'] == 1 && !empty($_SESSION['pending_submission'])) {
+    $processing_pending = true;
+    $pending = $_SESSION['pending_submission'];
+    // Populate POST-like variables for reuse of existing logic
+    $_POST['sujet'] = $pending['sujet'] ?? '';
+    $_POST['category_id'] = $pending['category_id'] ?? '';
+    $_POST['description'] = $pending['description'] ?? '';
+
+    // If a temp file exists, move it into expected place and simulate $_FILES
+    if (!empty($pending['file']) && !empty($pending['file']['tmp_path'])) {
+        $tempRel = $pending['file']['tmp_path']; // e.g. uploads/temp/uniq_name
+        $tempFull = realpath(__DIR__ . '/../../' . $tempRel);
+        if ($tempFull && file_exists($tempFull)) {
+            $orig = $pending['file']['orig_name'] ?? basename($tempRel);
+            $_SESSION['pending_submission']['moved_temp_full'] = $tempFull;
+            $_SESSION['pending_submission']['moved_orig_name'] = $orig;
+        }
+    }
+
+    // Simulate POST so the existing handler runs below
+    $_SERVER['REQUEST_METHOD'] = 'POST';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sujet = sanitize_input($_POST['sujet']);
@@ -24,13 +80,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo->beginTransaction();
 
-            // Insérer la réclamation
-            $stmt = $pdo->prepare("INSERT INTO reclamations (user_id, category_id, sujet, description) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$user_id, $category_id, $sujet, $description]);
+            // Insérer la réclamation — construire INSERT dynamique selon les noms réels des colonnes
+            $reclamCatCol = detect_column($pdo, 'reclamations', ['category_id','categorie_id','cat_id','categorie','categorieId','category']);
+            $reclamSujetCol = detect_column($pdo, 'reclamations', ['sujet','objet','title','subject']);
+            $reclamDescCol = detect_column($pdo, 'reclamations', ['description','desc','contenu','details']);
+
+            $insertCols = ['`user_id`'];
+            $placeholders = ['?'];
+            $values = [$user_id];
+
+            // Insérer la colonne catégorie à la position souhaitée (après user_id)
+            if ($reclamCatCol) {
+                $insertCols[] = "`$reclamCatCol`";
+                $placeholders[] = '?';
+                $values[] = $category_id;
+            } else {
+                // fallback to category_id (legacy) if not detected
+                $insertCols[] = '`category_id`';
+                $placeholders[] = '?';
+                $values[] = $category_id;
+            }
+
+            // Ajouter la colonne sujet (ou son équivalent réel)
+            if ($reclamSujetCol) {
+                $insertCols[] = "`$reclamSujetCol`";
+            } else {
+                $insertCols[] = '`sujet`';
+            }
+            $placeholders[] = '?';
+            $values[] = $sujet;
+
+            // Ajouter la colonne description (ou son équivalent réel)
+            if ($reclamDescCol) {
+                $insertCols[] = "`$reclamDescCol`";
+            } else {
+                $insertCols[] = '`description`';
+            }
+            $placeholders[] = '?';
+            $values[] = $description;
+
+            $sql = 'INSERT INTO reclamations (' . implode(', ', $insertCols) . ') VALUES (' . implode(', ', $placeholders) . ')';
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($values);
             $reclamation_id = $pdo->lastInsertId();
 
             // Gestion de l'upload de fichier
-            if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+            // First, handle file moved from frontend pending_submission (temp file)
+            $handled_file = false;
+            if (empty($_FILES['attachment']) && !empty($_SESSION['pending_submission']['moved_temp_full'])) {
+                $tempFull = $_SESSION['pending_submission']['moved_temp_full'];
+                $orig_name = $_SESSION['pending_submission']['moved_orig_name'] ?? basename($tempFull);
+                if (file_exists($tempFull)) {
+                    $upload_dir = '../../uploads/';
+                    if (!file_exists($upload_dir)) mkdir($upload_dir, 0777, true);
+
+                    $file_name = time() . '_' . basename($orig_name);
+                    $target_path = $upload_dir . $file_name;
+                    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                    $allowed_ext = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'];
+
+                    if (in_array($file_ext, $allowed_ext)) {
+                        if (@rename($tempFull, $target_path) || @copy($tempFull, $target_path)) {
+                            // Remove temp file if copy used
+                            if (file_exists($tempFull) && realpath($tempFull) !== realpath($target_path)) {
+                                @unlink($tempFull);
+                            }
+                            $sql = "INSERT INTO pieces_jointes (reclam_id, nom_fichier, chemin_acces) VALUES (?, ?, ?)";
+                            $stmt = $pdo->prepare($sql);
+                            $stmt->execute([$reclamation_id, $file_name, 'uploads/' . $file_name]);
+                            $handled_file = true;
+                        } else {
+                            $error = "Erreur lors du déplacement du fichier temporaire.";
+                        }
+                    } else {
+                        $error = "Format de fichier non supporté. (Autorisé: jpg, png, pdf, doc)";
+                    }
+                }
+            }
+
+            if (!$handled_file && isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
                 $upload_dir = '../../uploads/';
                 if (!file_exists($upload_dir)) {
                     mkdir($upload_dir, 0777, true);
@@ -43,8 +171,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (in_array($file_ext, $allowed_ext)) {
                     if (move_uploaded_file($_FILES['attachment']['tmp_name'], $target_path)) {
-                        $stmt = $pdo->prepare("INSERT INTO pieces_jointes (reclamation_id, file_path) VALUES (?, ?)");
-                        $stmt->execute([$reclamation_id, $file_name]);
+                        // Insérer dans pieces_jointes avec les colonnes réelles: reclam_id, nom_fichier, chemin_acces
+                        $sql = "INSERT INTO pieces_jointes (reclam_id, nom_fichier, chemin_acces) VALUES (?, ?, ?)";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute([$reclamation_id, $file_name, 'uploads/' . $file_name]);
                     } else {
                         $error = "Erreur lors du téléchargement du fichier.";
                     }
@@ -56,8 +186,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (empty($error)) {
                 $pdo->commit();
                 $success = "Votre réclamation a été soumise avec succès.";
-                // Reset form data if needed or redirect
-                // redirect('index.php'); // Optionnel: rediriger vers le dashboard
+                // Clear pending submission if any
+                if (!empty($_SESSION['pending_submission'])) {
+                    unset($_SESSION['pending_submission']);
+                }
+                // If we were processing a pending submission, redirect to dashboard
+                if (!empty($processing_pending)) {
+                    redirect('index.php');
+                }
+                // Otherwise keep showing the success message on this page
             } else {
                 $pdo->rollBack();
             }
@@ -67,6 +204,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Une erreur est survenue: " . $e->getMessage();
         }
     }
+}
+
+// Process pending submission if redirected from frontend after login
+if (isset($_GET['process_pending']) && $_GET['process_pending'] == 1 && !empty($_SESSION['pending_submission'])) {
+    $pending = $_SESSION['pending_submission'];
+    // Populate POST-like variables for reuse of existing logic
+    $_POST['sujet'] = $pending['sujet'] ?? '';
+    $_POST['category_id'] = $pending['category_id'] ?? '';
+    $_POST['description'] = $pending['description'] ?? '';
+
+    // If a temp file exists, move it into expected place and simulate $_FILES
+    if (!empty($pending['file']) && !empty($pending['file']['tmp_path'])) {
+        $tempRel = $pending['file']['tmp_path']; // e.g. uploads/temp/uniq_name
+        $tempFull = realpath(__DIR__ . '/../../' . $tempRel);
+        if ($tempFull && file_exists($tempFull)) {
+            // create a new fake file array to be handled by existing upload code
+            $orig = $pending['file']['orig_name'] ?? basename($tempRel);
+            // move to a temporary PHP upload-like tmp file location won't be necessary; we'll move directly later
+            // store info in a helper variable that upload code below will use
+            $_SESSION['pending_submission']['moved_temp_full'] = $tempFull;
+            $_SESSION['pending_submission']['moved_orig_name'] = $orig;
+        }
+    }
+
+    // Submit by reusing POST handling code path: we'll call the same block by performing a POST-like process
+    // To avoid duplicating code, we call submit logic by simulating a POST request: set a flag
+    $_SERVER['REQUEST_METHOD'] = 'POST';
 }
 
 include '../../includes/head.php';

@@ -48,15 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_email'] = $user['email'] ?? '';
                 // Do NOT store the password in session
                 $_SESSION['user_role'] = $user['role'] ?? '';
+                // If there is a pending submission, process it in the reclamant area
+                if (!empty($_SESSION['pending_submission'])) {
+                    // Redirect to reclamant soumission processor which will require the user to be reclamant
+                    redirect('../espaces/reclamant/soumission.php?process_pending=1');
+                }
 
-            // Redirection selon le rôle
-            if ($user['role'] === 'administrateur') {
-                redirect('../espaces/administrateur/index.php');
-            } elseif ($user['role'] === 'gestionnaire') {
-                redirect('../espaces/gestionnaire/index.php');
-            } else {
-                redirect('../espaces/reclamant/index.php');
-            }
+                // Redirection selon le rôle
+                if ($user['role'] === 'administrateur') {
+                    redirect('../espaces/administrateur/index.php');
+                } elseif ($user['role'] === 'gestionnaire') {
+                    redirect('../espaces/gestionnaire/index.php');
+                } else {
+                    redirect('../espaces/reclamant/index.php');
+                }
             } else {
                 $error = "Email ou mot de passe incorrect.";
             }

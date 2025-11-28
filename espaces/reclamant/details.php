@@ -12,39 +12,208 @@ $reclamation_id = $_GET['id'];
 $user_id = $_SESSION['user_id'];
 $pdo = get_pdo();
 
-// Récupérer les détails de la réclamation
-$stmt = $pdo->prepare("SELECT c.*, cat.nom as categorie_nom 
-    FROM reclamations c 
-    JOIN categories cat ON c.category_id = cat.id 
-    WHERE c.id = ? AND c.user_id = ?");
-$stmt->execute([$reclamation_id, $user_id]);
+// Helper: détecte la première colonne existante parmi des candidats
+function detect_column($pdo, $table, $candidates) {
+    $check = $pdo->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?");
+    foreach ($candidates as $col) {
+        $check->execute([$table, $col]);
+        if ($check->fetchColumn() > 0) {
+            return $col;
+        }
+    }
+    return null;
+}
+
+// Détecter colonnes pour reclamations/categories
+$catNameCol = detect_column($pdo, 'categories', ['nom', 'nom_categorie', 'categorie_nom', 'name', 'libelle']);
+$catPk = detect_column($pdo, 'categories', ['id', 'categorie_id', 'category_id', 'cat_id']);
+// colonne FK dans reclamations pointant vers categories
+$reclamFk = detect_column($pdo, 'reclamations', ['category_id', 'categorie_id', 'cat_id', 'categorie', 'categorie_id', 'category']);
+$reclamPk = detect_column($pdo, 'reclamations', ['id', 'reclam_id', 'reclamation_id', 'id_reclamation', 'recl_id']);
+$reclamDateCol = detect_column($pdo, 'reclamations', ['created_at', 'date_created', 'date_soumission', 'date_submission', 'date', 'date_creation', 'submitted_at', 'date_submitted']);
+$reclamUpdatedCol = detect_column($pdo, 'reclamations', ['updated_at', 'date_updated', 'last_updated', 'modified_at']);
+
+// Construire SELECT principal avec alias pour compatibilité template
+$select = "c.*";
+// n'ajouter le nom de catégorie que si on pourra faire la jointure (cat existe ET reclamations a la FK)
+if ($catNameCol && $catPk && $reclamFk) {
+    $select .= ", cat.`$catNameCol` AS categorie_nom";
+}
+if ($reclamPk && $reclamPk !== 'id') {
+    $select .= ", c.`$reclamPk` AS id";
+}
+if ($reclamDateCol && $reclamDateCol !== 'created_at') {
+    $select .= ", c.`$reclamDateCol` AS created_at";
+}
+if ($reclamUpdatedCol && $reclamUpdatedCol !== 'updated_at') {
+    $select .= ", c.`$reclamUpdatedCol` AS updated_at";
+}
+
+// Construire la requête principale
+// Construire la requête principale — faire la jointure seulement si on a la FK dans reclamations
+if ($catNameCol && $catPk && $reclamFk) {
+    $sql = "SELECT $select FROM reclamations c LEFT JOIN categories cat ON c.`$reclamFk` = cat.`$catPk` WHERE ";
+} else {
+    $sql = "SELECT $select FROM reclamations c WHERE ";
+}
+
+// Condition sur l'ID de la réclamation et l'utilisateur -> adapter le nom de la PK si nécessaire
+if ($reclamPk && $reclamPk !== 'id') {
+    $sql .= "c.`$reclamPk` = ? AND c.user_id = ?";
+    $params = [$reclamation_id, $user_id];
+} else {
+    $sql .= "c.id = ? AND c.user_id = ?";
+    $params = [$reclamation_id, $user_id];
+}
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 $reclamation = $stmt->fetch();
 
 if (!$reclamation) {
     redirect('index.php');
 }
 
-// Récupérer les pièces jointes
-$stmt = $pdo->prepare("SELECT * FROM pieces_jointes WHERE reclamation_id = ?");
+// Ensure `created_at` and `updated_at` keys exist to avoid undefined index warnings
+if (!isset($reclamation['created_at'])) {
+    if (isset($reclamDateCol) && isset($reclamation[$reclamDateCol])) {
+        $reclamation['created_at'] = $reclamation[$reclamDateCol];
+    } else {
+        $reclamation['created_at'] = null;
+    }
+}
+if (!isset($reclamation['updated_at'])) {
+    if (isset($reclamUpdatedCol) && isset($reclamation[$reclamUpdatedCol])) {
+        $reclamation['updated_at'] = $reclamation[$reclamUpdatedCol];
+    } else {
+        // fallback to created_at or null
+        $reclamation['updated_at'] = $reclamation['created_at'] ?? null;
+    }
+}
+
+// Récupérer les pièces jointes avec les colonnes réelles
+$sql = "SELECT piece_id, reclam_id, nom_fichier, chemin_acces FROM pieces_jointes WHERE reclam_id = ?";
+$stmt = $pdo->prepare($sql);
 $stmt->execute([$reclamation_id]);
 $attachments = $stmt->fetchAll();
 
-// Récupérer les commentaires (historique)
-$stmt = $pdo->prepare("SELECT c.*, u.nom as user_name, u.role as user_role 
-    FROM commentaires c 
-    JOIN users u ON c.user_id = u.id 
-    WHERE c.reclamation_id = ? 
-    ORDER BY c.created_at ASC");
-$stmt->execute([$reclamation_id]);
-$comments = $stmt->fetchAll();
+// Récupérer les commentaires (historique) — détecter colonnes réelles dans `commentaires`
+$commFk = detect_column($pdo, 'commentaires', ['reclamation_id', 'reclam_id', 'reclam_id', 'reclamation']);
+$commUserCol = detect_column($pdo, 'commentaires', ['user_id', 'user', 'author_id']);
+$commTextCol = detect_column($pdo, 'commentaires', ['comment', 'contenu_comm', 'commentaire', 'message', 'content']);
+$commDateCol = detect_column($pdo, 'commentaires', ['created_at', 'date_commentaire', 'date', 'date_creation']);
+
+$selectComm = "c.*";
+if ($commTextCol && $commTextCol !== 'comment') {
+    $selectComm .= ", c.`$commTextCol` AS comment";
+}
+if ($commDateCol && $commDateCol !== 'created_at') {
+    $selectComm .= ", c.`$commDateCol` AS created_at";
+}
+
+// build JOIN to users — assume users.id exists; if comment user col differs, use it
+// detect columns in users table to build a safe JOIN and select user display fields
+$usersPk = detect_column($pdo, 'users', ['id', 'user_id', 'uid', 'id_user', 'userid']);
+$usersNameCol = detect_column($pdo, 'users', ['nom', 'name', 'username', 'user_name', 'full_name']);
+$usersRoleCol = detect_column($pdo, 'users', ['role', 'user_role', 'profil', 'profil_role']);
+
+$canJoinUsers = false;
+if ($commUserCol && $usersPk) {
+    $canJoinUsers = true;
+    $userJoinCondition = "c.`$commUserCol` = u.`$usersPk`";
+} elseif (!$commUserCol && $usersPk && detect_column($pdo, 'commentaires', ['user_id'])) {
+    $canJoinUsers = true;
+    $userJoinCondition = "c.user_id = u.`$usersPk`";
+} else {
+    $userJoinCondition = '';
+}
+
+$userSelectName = $usersNameCol ? "u.`$usersNameCol` as user_name" : "'' as user_name";
+$userSelectRole = $usersRoleCol ? "u.`$usersRoleCol` as user_role" : "'' as user_role";
+
+if ($commFk) {
+    // choisir une colonne sûre pour ORDER BY dans commentaires
+    $hasCreatedCol = detect_column($pdo, 'commentaires', ['created_at']);
+    if ($commDateCol) {
+        $orderCol = "c.`$commDateCol`";
+    } elseif ($hasCreatedCol) {
+        $orderCol = "c.created_at";
+    } else {
+        $commentPk = detect_column($pdo, 'commentaires', ['id', 'comm_id', 'commentaire_id', 'id_comment']);
+        $orderCol = $commentPk ? "c.`$commentPk`" : "1";
+    }
+    if ($canJoinUsers && $userJoinCondition) {
+        $sql = "SELECT $selectComm, $userSelectName, $userSelectRole FROM commentaires c JOIN users u ON $userJoinCondition WHERE c.`$commFk` = ? ORDER BY $orderCol ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$reclamation_id]);
+        $comments = $stmt->fetchAll();
+    } else {
+        // no safe join possible — select comments without user info
+        $sql = "SELECT $selectComm, '' as user_name, '' as user_role FROM commentaires c WHERE c.`$commFk` = ? ORDER BY $orderCol ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$reclamation_id]);
+        $comments = $stmt->fetchAll();
+    }
+} else {
+    // fallback to original but only join if safe
+    if ($canJoinUsers && $userJoinCondition) {
+        $sql = "SELECT c.*, $userSelectName, $userSelectRole FROM commentaires c JOIN users u ON $userJoinCondition WHERE c.reclamation_id = ? ORDER BY c.created_at ASC";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$reclamation_id]);
+        $comments = $stmt->fetchAll();
+    } else {
+        $stmt = $pdo->prepare("SELECT c.*, '' as user_name, '' as user_role FROM commentaires c WHERE c.reclamation_id = ? ORDER BY c.created_at ASC");
+        $stmt->execute([$reclamation_id]);
+        $comments = $stmt->fetchAll();
+    }
+}
 
 // Traitement du nouveau commentaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
     $comment = sanitize_input($_POST['comment']);
     if (!empty($comment)) {
-        $stmt = $pdo->prepare("INSERT INTO commentaires (reclamation_id, user_id, comment) VALUES (?, ?, ?)");
-        $stmt->execute([$reclamation_id, $user_id, $comment]);
-        
+        // Construire INSERT en fonction des colonnes détectées
+        $insertCols = [];
+        $placeholders = [];
+        $values = [];
+
+        // FK
+        if ($commFk) {
+            $insertCols[] = "`$commFk`";
+            $placeholders[] = '?';
+            $values[] = $reclamation_id;
+        } else {
+            $insertCols[] = 'reclamation_id';
+            $placeholders[] = '?';
+            $values[] = $reclamation_id;
+        }
+
+        // user
+        if ($commUserCol) {
+            $insertCols[] = "`$commUserCol`";
+            $placeholders[] = '?';
+            $values[] = $user_id;
+        } else {
+            $insertCols[] = 'user_id';
+            $placeholders[] = '?';
+            $values[] = $user_id;
+        }
+
+        // texte
+        if ($commTextCol) {
+            $insertCols[] = "`$commTextCol`";
+            $placeholders[] = '?';
+            $values[] = $comment;
+        } else {
+            $insertCols[] = 'comment';
+            $placeholders[] = '?';
+            $values[] = $comment;
+        }
+
+        $sql = "INSERT INTO commentaires (" . implode(',', $insertCols) . ") VALUES (" . implode(',', $placeholders) . ")";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($values);
+
         // Rafraîchir la page
         redirect("details.php?id=$reclamation_id");
     }
@@ -96,8 +265,8 @@ include '../../includes/head.php';
                             <div class="row g-2">
                                 <?php foreach ($attachments as $att): ?>
                                     <div class="col-auto">
-                                        <a href="../../uploads/<?php echo $att['file_path']; ?>" target="_blank" class="btn btn-outline-secondary btn-sm">
-                                            <i class="bi bi-file-earmark me-1"></i> Voir le fichier
+                                        <a href="../../<?php echo $att['chemin_acces']; ?>" download="<?php echo $att['nom_fichier']; ?>" class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-file-earmark-down me-1"></i> <?php echo $att['nom_fichier']; ?>
                                         </a>
                                     </div>
                                 <?php endforeach; ?>

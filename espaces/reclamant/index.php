@@ -6,7 +6,6 @@ require_role('reclamant');
 
 $user_id = $_SESSION['user_id'];
 $pdo = get_pdo();
-
 // Récupérer les statistiques
 $stmt = $pdo->prepare("SELECT 
     COUNT(*) as total,
@@ -17,12 +16,61 @@ $stmt = $pdo->prepare("SELECT
 $stmt->execute([$user_id]);
 $stats = $stmt->fetch();
 
-// Récupérer les dernières réclamations
-$stmt = $pdo->prepare("SELECT c.*, cat.nom as categorie_nom 
-    FROM reclamations c 
-    JOIN categories cat ON c.category_id = cat.id 
-    WHERE c.user_id = ? 
-    ORDER BY c.created_at DESC");
+// Helper: détecte la première colonne existante parmi des candidats
+function detect_column($pdo, $table, $candidates) {
+    $check = $pdo->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?");
+    foreach ($candidates as $col) {
+        $check->execute([$table, $col]);
+        if ($check->fetchColumn() > 0) {
+            return $col;
+        }
+    }
+    return null;
+}
+
+// Détecter les colonnes utiles dans la table `categories` et `reclamations`
+$catNameCol = detect_column($pdo, 'categories', ['nom', 'nom_categorie', 'categorie_nom', 'name', 'libelle']);
+$catPk = detect_column($pdo, 'categories', ['id', 'categorie_id', 'category_id', 'cat_id']);
+$reclamFk = detect_column($pdo, 'reclamations', ['category_id', 'categorie_id', 'cat_id', 'categorie']);
+
+// Détecter colonnes importantes dans `reclamations` pour aliaser proprement
+$reclamIdCol = detect_column($pdo, 'reclamations', ['id', 'reclam_id', 'reclamation_id', 'id_reclamation', 'recl_id']);
+$reclamSujetCol = detect_column($pdo, 'reclamations', ['sujet', 'objet', 'title', 'subject']);
+$reclamDateCol = detect_column($pdo, 'reclamations', ['created_at', 'date_created', 'date_soumission', 'date_submission', 'date', 'date_creation', 'submitted_at', 'date_submitted']);
+
+// Construire SELECT en incluant c.* puis en aliasant les colonnes usuelles vers les noms attendus par le template
+$select = "c.*";
+if ($catNameCol && $catPk && $reclamFk) {
+    $select .= ", cat.`$catNameCol` as categorie_nom";
+}
+// Aliases pour garder compatibilité avec le template
+if ($reclamIdCol && $reclamIdCol !== 'id') {
+    $select .= ", c.`$reclamIdCol` AS id";
+}
+if ($reclamSujetCol && $reclamSujetCol !== 'sujet') {
+    $select .= ", c.`$reclamSujetCol` AS sujet";
+}
+if ($reclamDateCol && $reclamDateCol !== 'created_at') {
+    $select .= ", c.`$reclamDateCol` AS created_at";
+}
+
+// Définir la colonne d'ordre — si on a une colonne de date détectée, l'utiliser, sinon tenter 'created_at' ou la PK
+if ($reclamDateCol) {
+    $orderBy = "c.`$reclamDateCol` DESC";
+} elseif (detect_column($pdo, 'reclamations', ['created_at'])) {
+    $orderBy = "c.created_at DESC";
+} else {
+    $orderBy = ($reclamIdCol ? "c.`$reclamIdCol` DESC" : "1");
+}
+
+// Construire la requête finale
+if ($catNameCol && $catPk && $reclamFk) {
+    $sql = "SELECT $select FROM reclamations c LEFT JOIN categories cat ON c.`$reclamFk` = cat.`$catPk` WHERE c.user_id = ? ORDER BY $orderBy";
+} else {
+    $sql = "SELECT $select FROM reclamations c WHERE c.user_id = ? ORDER BY $orderBy";
+}
+
+$stmt = $pdo->prepare($sql);
 $stmt->execute([$user_id]);
 $reclamations = $stmt->fetchAll();
 
@@ -121,7 +169,7 @@ include '../../includes/head.php';
                                     <tr>
                                         <td class="ps-4 fw-bold">#<?php echo $reclamation['id']; ?></td>
                                         <td><?php echo htmlspecialchars($reclamation['sujet']); ?></td>
-                                        <td><span class="badge bg-light text-dark border"><?php echo htmlspecialchars($reclamation['categorie_nom']); ?></span></td>
+                                        <td><span class="badge bg-light text-dark border"><?php echo htmlspecialchars($reclamation['categorie_nom'] ?? '—'); ?></span></td>
                                         <td><?php echo format_date($reclamation['created_at']); ?></td>
                                         <td>
                                             <span class="badge rounded-pill <?php echo get_status_badge($reclamation['statut']); ?>">

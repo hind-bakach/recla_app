@@ -18,6 +18,6 @@ if (ini_get("session.use_cookies")) {
 // Finalement, détruire la session.
 session_destroy();
 
-// Rediriger vers la page de connexion
-redirect('login.php');
+// Rediriger vers la page d'accueil du frontend
+redirect('index.php');
 ?>

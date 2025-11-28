@@ -60,7 +60,14 @@ function sanitize_input($data) {
  * Formate la date pour l'affichage
  */
 function format_date($date) {
-    return date('d/m/Y H:i', strtotime($date));
+    if (empty($date) || $date === '0000-00-00' || $date === '0000-00-00 00:00:00') {
+        return '-';
+    }
+    $ts = strtotime($date);
+    if ($ts === false) {
+        return '-';
+    }
+    return date('d/m/Y H:i', $ts);
 }
 
 /**

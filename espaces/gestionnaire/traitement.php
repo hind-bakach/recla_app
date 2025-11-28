@@ -12,12 +12,47 @@ $reclamation_id = $_GET['id'];
 $user_id = $_SESSION['user_id'];
 $pdo = get_pdo();
 
-// Récupérer les détails de la réclamation
-$stmt = $pdo->prepare("SELECT c.*, u.nom as user_name, u.email as user_email, cat.nom as categorie_nom 
-    FROM reclamations c 
-    JOIN users u ON c.user_id = u.id 
-    JOIN categories cat ON c.category_id = cat.id 
-    WHERE c.id = ?");
+// Détection dynamique des colonnes (pour compatibilité avec différents schémas)
+$getCols = function($table) use ($pdo) {
+    $rows = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='".DB_NAME."' AND TABLE_NAME='".addslashes($table)."'")->fetchAll(PDO::FETCH_COLUMN);
+    return $rows ?: [];
+};
+
+$reclamCols = $getCols('reclamations');
+$reclamIdCol = in_array('reclam_id', $reclamCols) ? 'reclam_id' : (in_array('id', $reclamCols) ? 'id' : ($reclamCols[0] ?? 'id'));
+$reclamUserCol = in_array('user_id', $reclamCols) ? 'user_id' : (in_array('userId', $reclamCols) ? 'userId' : (in_array('user', $reclamCols) ? 'user' : 'user_id'));
+$reclamCatCol = in_array('categorie_id', $reclamCols) ? 'categorie_id' : (in_array('category_id', $reclamCols) ? 'category_id' : (in_array('cat_id', $reclamCols) ? 'cat_id' : null));
+$reclamObjetCol = in_array('objet', $reclamCols) ? 'objet' : (in_array('sujet', $reclamCols) ? 'sujet' : (in_array('title', $reclamCols) ? 'title' : 'objet'));
+$reclamDescCol = in_array('description', $reclamCols) ? 'description' : (in_array('desc', $reclamCols) ? 'desc' : 'description');
+$reclamDateCol = in_array('created_at', $reclamCols) ? 'created_at' : (in_array('date_soumission', $reclamCols) ? 'date_soumission' : ($reclamCols[1] ?? $reclamCols[0] ?? 'created_at'));
+$reclamStatusCol = in_array('statut', $reclamCols) ? 'statut' : (in_array('status', $reclamCols) ? 'status' : 'statut');
+
+$userCols = $getCols('users');
+$userIdCol = in_array('user_id', $userCols) ? 'user_id' : (in_array('id', $userCols) ? 'id' : ($userCols[0] ?? 'id'));
+$userNameCol = in_array('nom', $userCols) ? 'nom' : (in_array('name', $userCols) ? 'name' : ($userCols[1] ?? $userIdCol));
+$userEmailCol = in_array('email', $userCols) ? 'email' : (in_array('mail', $userCols) ? 'mail' : 'email');
+
+$catCols = $getCols('categories');
+$catIdCol = in_array('categorie_id', $catCols) ? 'categorie_id' : (in_array('id', $catCols) ? 'id' : ($catCols[0] ?? 'id'));
+$catNameCol = in_array('nom_categorie', $catCols) ? 'nom_categorie' : (in_array('nom', $catCols) ? 'nom' : (in_array('name', $catCols) ? 'name' : ($catCols[1] ?? $catIdCol)));
+$catResponsableCol = in_array('responsable', $catCols) ? 'responsable' : (in_array('gestionnaire', $catCols) ? 'gestionnaire' : null);
+
+// Récupérer les détails de la réclamation avec alias stables pour la vue
+$sql = "SELECT ";
+$sql .= "r." . $reclamIdCol . " AS id, ";
+$sql .= "u." . $userNameCol . " AS user_name, ";
+$sql .= "u." . $userEmailCol . " AS user_email, ";
+$sql .= "r." . $reclamObjetCol . " AS sujet, ";
+$sql .= "r." . $reclamDescCol . " AS description, ";
+$sql .= "cat." . $catNameCol . " AS categorie_nom, ";
+$sql .= "r." . $reclamDateCol . " AS created_at, ";
+$sql .= "r." . $reclamStatusCol . " AS statut ";
+$sql .= "FROM reclamations r ";
+$sql .= "LEFT JOIN users u ON r." . $reclamUserCol . " = u." . $userIdCol . " ";
+$sql .= "LEFT JOIN categories cat ON r." . ($reclamCatCol ?? $catIdCol) . " = cat." . $catIdCol . " ";
+$sql .= "WHERE r." . $reclamIdCol . " = ? LIMIT 1";
+
+$stmt = $pdo->prepare($sql);
 $stmt->execute([$reclamation_id]);
 $reclamation = $stmt->fetch();
 
@@ -25,31 +60,89 @@ if (!$reclamation) {
     redirect('index.php');
 }
 
-// Récupérer les pièces jointes
-$stmt = $pdo->prepare("SELECT * FROM pieces_jointes WHERE reclamation_id = ?");
-$stmt->execute([$reclamation_id]);
-$attachments = $stmt->fetchAll();
+// Récupérer les pièces jointes avec les colonnes réelles
+$attachments = [];
+if ($pdo->query("SHOW TABLES LIKE 'pieces_jointes'")->fetchColumn()) {
+    $stmt = $pdo->prepare("SELECT piece_id, reclam_id, nom_fichier, chemin_acces FROM pieces_jointes WHERE reclam_id = ?");
+    $stmt->execute([$reclamation_id]);
+    $attachments = $stmt->fetchAll();
+}
 
-// Récupérer les commentaires
-$stmt = $pdo->prepare("SELECT c.*, u.nom as user_name, u.role as user_role 
-    FROM commentaires c 
-    JOIN users u ON c.user_id = u.id 
-    WHERE c.reclamation_id = ? 
-    ORDER BY c.created_at ASC");
-$stmt->execute([$reclamation_id]);
-$comments = $stmt->fetchAll();
+// Récupérer les commentaires en détectant les colonnes
+$comments = [];
+if ($pdo->query("SHOW TABLES LIKE 'commentaires'")->fetchColumn()) {
+    $commentCols = $getCols('commentaires');
+    // FK to reclamation: try common variants (reclam_id, reclamation_id, reclam_id)
+    if (in_array('reclam_id', $commentCols)) {
+        $commentReclamFk = 'reclam_id';
+    } elseif (in_array('reclamation_id', $commentCols)) {
+        $commentReclamFk = 'reclamation_id';
+    } elseif (in_array('reclamationId', $commentCols)) {
+        $commentReclamFk = 'reclamationId';
+    } elseif (in_array('reclam', $commentCols)) {
+        $commentReclamFk = 'reclam';
+    } else {
+        $commentReclamFk = $commentCols[0] ?? 'reclamation_id';
+    }
+
+    // user FK
+    $commentUserFk = in_array('user_id', $commentCols) ? 'user_id' : (in_array('author_id', $commentCols) ? 'author_id' : (in_array('user', $commentCols) ? 'user' : 'user_id'));
+
+    // created/date column
+    if (in_array('date_commentaire', $commentCols)) {
+        $commentCreated = 'date_commentaire';
+    } elseif (in_array('created_at', $commentCols)) {
+        $commentCreated = 'created_at';
+    } elseif (in_array('date', $commentCols)) {
+        $commentCreated = 'date';
+    } else {
+        $commentCreated = $commentCols[0] ?? 'created_at';
+    }
+
+    // text/content column
+    if (in_array('contenu_comm', $commentCols)) {
+        $commentTextCol = 'contenu_comm';
+    } elseif (in_array('contenu_comment', $commentCols)) {
+        $commentTextCol = 'contenu_comment';
+    } elseif (in_array('comment', $commentCols)) {
+        $commentTextCol = 'comment';
+    } elseif (in_array('message', $commentCols)) {
+        $commentTextCol = 'message';
+    } else {
+        $commentTextCol = $commentCols[2] ?? 'comment';
+    }
+
+    $sqlC = "SELECT c.*, u." . $userNameCol . " AS user_name, u.role AS user_role, c." . $commentTextCol . " AS comment, c." . $commentCreated . " AS created_at ";
+    $sqlC .= "FROM commentaires c ";
+    $sqlC .= "LEFT JOIN users u ON c." . $commentUserFk . " = u." . $userIdCol . " ";
+    $sqlC .= "WHERE c." . $commentReclamFk . " = ? ";
+    $sqlC .= "ORDER BY c." . $commentCreated . " ASC";
+
+    $stmt = $pdo->prepare($sqlC);
+    $stmt->execute([$reclamation_id]);
+    $comments = $stmt->fetchAll();
+}
 
 // Traitement du formulaire (Changement de statut / Commentaire)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['new_status'])) {
         $new_status = $_POST['new_status'];
-        $stmt = $pdo->prepare("UPDATE reclamations SET statut = ? WHERE id = ?");
+        $updSql = "UPDATE reclamations SET " . $reclamStatusCol . " = ? WHERE " . $reclamIdCol . " = ?";
+        $stmt = $pdo->prepare($updSql);
         $stmt->execute([$new_status, $reclamation_id]);
-        
-        // Ajouter un commentaire système automatique (optionnel)
+
+        // Ajouter un commentaire système automatique (optionnel) si table commentaires existe
         $msg = "Le statut a été changé en : " . get_status_label($new_status);
-        $stmt = $pdo->prepare("INSERT INTO commentaires (reclamation_id, user_id, comment) VALUES (?, ?, ?)");
-        $stmt->execute([$reclamation_id, $user_id, $msg]);
+        if (isset($commentReclamFk) && isset($commentUserFk)) {
+            $insCols = $commentReclamFk . ", " . $commentUserFk . ", " . $commentTextCol;
+            $insSql = "INSERT INTO commentaires (" . $insCols . ") VALUES (?, ?, ?)";
+            $stmt = $pdo->prepare($insSql);
+            $stmt->execute([$reclamation_id, $user_id, $msg]);
+        } else {
+            // fallback
+            $stmt = $pdo->prepare("INSERT INTO commentaires (reclamation_id, user_id, comment) VALUES (?, ?, ?)");
+            $stmt->execute([$reclamation_id, $user_id, $msg]);
+        }
         
         redirect("traitement.php?id=$reclamation_id");
     }
@@ -57,8 +150,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['comment'])) {
         $comment = sanitize_input($_POST['comment']);
         if (!empty($comment)) {
-            $stmt = $pdo->prepare("INSERT INTO commentaires (reclamation_id, user_id, comment) VALUES (?, ?, ?)");
-            $stmt->execute([$reclamation_id, $user_id, $comment]);
+            if (isset($commentReclamFk) && isset($commentUserFk)) {
+                $insCols = $commentReclamFk . ", " . $commentUserFk . ", " . $commentTextCol;
+                $insSql = "INSERT INTO commentaires (" . $insCols . ") VALUES (?, ?, ?)";
+                $stmt = $pdo->prepare($insSql);
+                $stmt->execute([$reclamation_id, $user_id, $comment]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO commentaires (reclamation_id, user_id, comment) VALUES (?, ?, ?)");
+                $stmt->execute([$reclamation_id, $user_id, $comment]);
+            }
             redirect("traitement.php?id=$reclamation_id");
         }
     }
@@ -144,8 +244,8 @@ include '../../includes/head.php';
                             <div class="row g-2">
                                 <?php foreach ($attachments as $att): ?>
                                     <div class="col-auto">
-                                        <a href="../../uploads/<?php echo $att['file_path']; ?>" target="_blank" class="btn btn-outline-secondary btn-sm">
-                                            <i class="bi bi-file-earmark me-1"></i> Voir le fichier
+                                        <a href="../../<?php echo $att['chemin_acces']; ?>" download="<?php echo $att['nom_fichier']; ?>" class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-file-earmark-down me-1"></i> <?php echo $att['nom_fichier']; ?>
                                         </a>
                                     </div>
                                 <?php endforeach; ?>
@@ -178,7 +278,16 @@ include '../../includes/head.php';
                                                     </h6>
                                                     <small class="text-muted"><?php echo format_date($comment['created_at']); ?></small>
                                                 </div>
-                                                <p class="mb-0 small"><?php echo nl2br(htmlspecialchars($comment['comment'])); ?></p>
+                                                <p class="mb-0 small">
+                                                    <?php
+                                                        // Décoder les entités si le contenu a été stocké encodé,
+                                                        // autoriser un petit ensemble de balises sûres, puis afficher les sauts de ligne.
+                                                        $raw = htmlspecialchars_decode($comment['comment'] ?? '');
+                                                        $allowed_tags = '<b><strong><i><em><u><br><a>';
+                                                        $safe = strip_tags($raw, $allowed_tags);
+                                                        echo nl2br($safe);
+                                                    ?>
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
