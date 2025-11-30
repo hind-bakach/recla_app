@@ -8,6 +8,48 @@ $pdo = get_pdo();
 $error = '';
 $success = '';
 
+// Modification d'une catégorie
+if (isset($_POST['action']) && $_POST['action'] === 'edit' && isset($_POST['edit_id'])) {
+    $edit_id = (int)($_POST['edit_id'] ?? 0);
+    $nom_categorie = sanitize_input($_POST['edit_nom_categorie'] ?? '');
+    $responsable = sanitize_input($_POST['edit_responsable'] ?? '');
+    $delai = is_numeric($_POST['edit_delai_traitement_jours'] ?? null) ? (int)$_POST['edit_delai_traitement_jours'] : null;
+    $priorite = sanitize_input($_POST['edit_priorite_defaut'] ?? '');
+
+    if (empty($nom_categorie)) {
+        $error = "Le nom de la catégorie est obligatoire.";
+    } else {
+        try {
+            // Detect ID column name
+            $colCheck = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='".DB_NAME."' AND TABLE_NAME='categories'")->fetchAll(PDO::FETCH_COLUMN);
+            $idCol = in_array('categorie_id', $colCheck) ? 'categorie_id' : (in_array('id', $colCheck) ? 'id' : $colCheck[0] ?? 'id');
+
+            // Build dynamic update based on existing columns
+            $fields = [];
+            $values = [];
+            if (in_array('nom_categorie', $colCheck)) { $fields[] = 'nom_categorie = ?'; $values[] = $nom_categorie; }
+            if (in_array('responsable', $colCheck)) { $fields[] = 'responsable = ?'; $values[] = $responsable; }
+            if (in_array('delai_traitement_jours', $colCheck)) { $fields[] = 'delai_traitement_jours = ?'; $values[] = $delai; }
+            if (in_array('priorite_defaut', $colCheck)) { $fields[] = 'priorite_defaut = ?'; $values[] = $priorite; }
+
+            if (count($fields) === 0) {
+                $error = "Aucun champ modifiable détecté dans la table categories.";
+            } else {
+                $values[] = $edit_id;
+                $sql = "UPDATE categories SET " . implode(', ', $fields) . " WHERE " . $idCol . " = ?";
+                $stmt = $pdo->prepare($sql);
+                if ($stmt->execute($values)) {
+                    $success = "Catégorie modifiée avec succès.";
+                } else {
+                    $error = "Erreur lors de la modification.";
+                }
+            }
+        } catch (PDOException $e) {
+            $error = "Erreur lors de la modification : " . $e->getMessage();
+        }
+    }
+}
+
 // Suppression d'une catégorie
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     $id_to_delete = $_GET['delete'];
@@ -54,7 +96,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Récupérer toutes les catégories (nouveau schéma)
-$categories = $pdo->query("SELECT * FROM categories ORDER BY nom_categorie ASC")->fetchAll();
+$catSearch = sanitize_input($_GET['search_cat'] ?? '');
+$priorityFilter = sanitize_input($_GET['priority_filter'] ?? '');
+$baseCatQuery = "SELECT * FROM categories WHERE 1=1";
+$catParams = [];
+if ($catSearch !== '') {
+    $baseCatQuery .= " AND (nom_categorie LIKE ? OR responsable LIKE ?)";
+    $catParams[] = '%' . $catSearch . '%';
+    $catParams[] = '%' . $catSearch . '%';
+}
+if ($priorityFilter !== '' && in_array($priorityFilter, ['Basse','Normale','Haute'])) {
+    $baseCatQuery .= " AND priorite_defaut = ?";
+    $catParams[] = $priorityFilter;
+}
+$baseCatQuery .= " ORDER BY nom_categorie ASC";
+$stmtCat = $pdo->prepare($baseCatQuery);
+$stmtCat->execute($catParams);
+$categories = $stmtCat->fetchAll();
 
 include '../../includes/head.php';
 ?>
@@ -98,7 +156,7 @@ include '../../includes/head.php';
             <!-- Contenu Principal -->
             <div class="col-lg-10">
                 
-                <?php if ($error): ?>
+                <?php if ($error && empty($success)): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <?php echo $error; ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -153,7 +211,20 @@ include '../../includes/head.php';
                     <div class="col-md-8">
                         <div class="card shadow-sm border-0 rounded-4">
                             <div class="card-header bg-white p-3 border-bottom">
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des catégories</h5>
+                                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                                    <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des catégories</h5>
+                                    <form class="d-flex gap-2" method="GET" action="categories.php">
+                                        <input type="text" name="search_cat" value="<?php echo htmlspecialchars($catSearch); ?>" class="form-control form-control-sm" placeholder="Recherche nom/responsable">
+                                        <select name="priority_filter" class="form-select form-select-sm" style="max-width:140px;">
+                                            <option value="">Priorité</option>
+                                            <option value="Basse" <?php if($priorityFilter==='Basse') echo 'selected'; ?>>Basse</option>
+                                            <option value="Normale" <?php if($priorityFilter==='Normale') echo 'selected'; ?>>Normale</option>
+                                            <option value="Haute" <?php if($priorityFilter==='Haute') echo 'selected'; ?>>Haute</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel"></i></button>
+                                        <a href="categories.php" class="btn btn-sm btn-outline-secondary" title="Réinitialiser"><i class="bi bi-x-circle"></i></a>
+                                    </form>
+                                </div>
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
@@ -165,7 +236,7 @@ include '../../includes/head.php';
                                                 <th class="py-3">Responsable</th>
                                                 <th class="py-3">Délai (jours)</th>
                                                 <th class="py-3">Priorité</th>
-                                                <th class="py-3 text-end pe-4">Action</th>
+                                                <th class="py-3 text-end pe-4">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -189,6 +260,10 @@ include '../../includes/head.php';
                                                         <span class="badge" style="background-color:<?php echo $priorityColor; ?>"><?php echo htmlspecialchars($cat['priorite_defaut'] ?? ''); ?></span>
                                                     </td>
                                                     <td class="text-end pe-4">
+                                                        <button type="button" class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
+                                                            onclick="loadCategoryData('<?php echo htmlspecialchars($cat['categorie_id'] ?? $cat['id'] ?? ''); ?>', '<?php echo htmlspecialchars($cat['nom_categorie'] ?? $cat['name'] ?? $cat['titre'] ?? ''); ?>', '<?php echo htmlspecialchars($cat['responsable'] ?? ''); ?>', '<?php echo htmlspecialchars($cat['delai_traitement_jours'] ?? ''); ?>', '<?php echo htmlspecialchars($cat['priorite_defaut'] ?? ''); ?>')">
+                                                            <i class="bi bi-pencil-square"></i>
+                                                        </button>
                                                         <a href="categories.php?delete=<?php echo htmlspecialchars($cat['categorie_id'] ?? $cat['id'] ?? ''); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?');">
                                                             <i class="bi bi-trash-fill"></i>
                                                         </a>
@@ -209,3 +284,56 @@ include '../../includes/head.php';
     <?php include '../../includes/footer.php'; ?>
 </body>
 </html>
+
+<!-- Modal d'édition de catégorie -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editCategoryModalLabel"><i class="bi bi-pencil-square me-2"></i>Modifier la catégorie</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="categories.php">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="edit_id" id="edit_id">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Nom de la catégorie</label>
+                        <input type="text" class="form-control" name="edit_nom_categorie" id="edit_nom_categorie" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Responsable</label>
+                        <input type="text" class="form-control" name="edit_responsable" id="edit_responsable">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Délai de traitement (jours)</label>
+                        <input type="number" class="form-control" name="edit_delai_traitement_jours" id="edit_delai_traitement_jours" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Priorité par défaut</label>
+                        <select class="form-select" name="edit_priorite_defaut" id="edit_priorite_defaut">
+                            <option value="Basse">Basse</option>
+                            <option value="Normale">Normale</option>
+                            <option value="Haute">Haute</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadCategoryData(id, nom, responsable, delai, priorite) {
+    document.getElementById('edit_id').value = id || '';
+    document.getElementById('edit_nom_categorie').value = nom || '';
+    document.getElementById('edit_responsable').value = responsable || '';
+    document.getElementById('edit_delai_traitement_jours').value = delai || '';
+    document.getElementById('edit_priorite_defaut').value = priorite || 'Normale';
+}
+</script>

@@ -61,6 +61,13 @@ $catResponsableCol = in_array('responsable', $catCols) ? 'responsable' : (in_arr
 $select_obj = 'r.' . $reclamObjetCol . ' AS objet';
 $select_cat = ($reclamCatCol ? 'r.' . $reclamCatCol . ' AS category_key,' : "NULL AS category_key,");
 
+// Filtres GET
+$fStatus = sanitize_input($_GET['status'] ?? '');
+$fSubject = sanitize_input($_GET['subject'] ?? '');
+$fUser = sanitize_input($_GET['user'] ?? '');
+$fCategory = sanitize_input($_GET['category'] ?? '');
+$fDateFrom = sanitize_input($_GET['date_from'] ?? '');
+
 $query = "SELECT 
             r." . $reclamIdCol . " as reclamation_id,
             r." . $reclamUserCol . " as user_id,
@@ -75,13 +82,23 @@ $query = "SELECT
         FROM " . $reclamTable . " r
         LEFT JOIN users u ON r." . $reclamUserCol . " = u." . $userIdCol . "
         LEFT JOIN categories cat ON (r." . ($reclamCatCol ?? $catIdCol) . " = cat." . $catIdCol . ")
-        ORDER BY r." . $reclamDateCol . " DESC";
+        WHERE 1=1";
 
+$params = [];
+if ($fStatus !== '') { $query .= " AND r.`$reclamStatusCol` = ?"; $params[] = $fStatus; }
+if ($fSubject !== '') { $query .= " AND r.`$reclamObjetCol` LIKE ?"; $params[] = '%'.$fSubject.'%'; }
+if ($fUser !== '') { $query .= " AND (u.`$userNameCol` LIKE ? OR u.email LIKE ?)"; $params[] = '%'.$fUser.'%'; $params[] = '%'.$fUser.'%'; }
+if ($fCategory !== '' && ctype_digit($fCategory) && $reclamCatCol) { $query .= " AND r.`$reclamCatCol` = ?"; $params[] = $fCategory; }
+if ($fDateFrom !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/',$fDateFrom)) { $query .= " AND r.`$reclamDateCol` >= ?"; $params[] = $fDateFrom; }
+// Champ 'Au' supprimé: pas de filtre date_to
+
+$query .= " ORDER BY r.`$reclamDateCol` DESC LIMIT 500";
 try {
-    $reclamations = $pdo->query($query)->fetchAll();
+    $stmtRecla = $pdo->prepare($query);
+    $stmtRecla->execute($params);
+    $reclamations = $stmtRecla->fetchAll();
 } catch (Exception $e) {
-    // Fallback query
-    $reclamations = $pdo->query("SELECT * FROM " . $reclamTable . " ORDER BY " . $reclamDateCol . " DESC")->fetchAll();
+    $reclamations = [];
 }
 
 include '../../includes/head.php';
@@ -144,10 +161,58 @@ include '../../includes/head.php';
                     <p class="text-muted">Gérez et suivez toutes les réclamations du système</p>
                 </div>
 
+                <!-- Filtres -->
+                <div class="card shadow-sm border-0 rounded-4 mb-4">
+                    <div class="card-header bg-white p-3 border-bottom">
+                        <div class="d-flex flex-column flex-xl-row gap-3 align-items-xl-center justify-content-between">
+                            <h5 class="mb-0 fw-bold"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filtres</h5>
+                            <form class="row g-2 align-items-end" method="GET" action="reclamations.php">
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold mb-1">Statut</label>
+                                    <select name="status" class="form-select form-select-sm">
+                                        <option value="">Tous</option>
+                                        <?php foreach(['soumis','en_cours','en_attente','resolu','resolue','rejete','archive'] as $s): ?>
+                                            <option value="<?php echo $s; ?>" <?php if(($fStatus ?? '')===$s) echo 'selected'; ?>><?php echo get_status_label($s); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold mb-1">Sujet</label>
+                                    <input type="text" name="subject" value="<?php echo htmlspecialchars($fSubject); ?>" class="form-control form-control-sm" placeholder="Sujet">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold mb-1">Réclamant</label>
+                                    <input type="text" name="user" value="<?php echo htmlspecialchars($fUser); ?>" class="form-control form-control-sm" placeholder="Nom ou email">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold mb-1">Catégorie</label>
+                                    <select name="category" class="form-select form-select-sm">
+                                        <option value="">Toutes</option>
+                                        <?php 
+                                        $catsFilter = $pdo->query("SELECT $catIdCol AS id, $catNameCol AS nom FROM categories ORDER BY $catNameCol ASC")->fetchAll();
+                                        foreach($catsFilter as $cf): ?>
+                                            <option value="<?php echo htmlspecialchars($cf['id']); ?>" <?php if(($fCategory ?? '')==$cf['id']) echo 'selected'; ?>><?php echo htmlspecialchars($cf['nom']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-bold mb-1">Du</label>
+                                    <input type="date" name="date_from" value="<?php echo htmlspecialchars($fDateFrom); ?>" class="form-control form-control-sm">
+                                </div>
+                                <!-- Champ 'Au' retiré -->
+                                <div class="col-12 d-flex gap-2 mt-1">
+                                    <button type="submit" class="btn btn-sm btn-primary fw-bold"><i class="bi bi-funnel"></i> Appliquer</button>
+                                    <a href="reclamations.php" class="btn btn-sm btn-outline-secondary fw-bold"><i class="bi bi-x-circle"></i> Réinitialiser</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tableau des Réclamations -->
                 <div class="card shadow-sm border-0 rounded-4">
                     <div class="card-header bg-white p-3 border-bottom">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des Réclamations</h5>
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des Réclamations (<?php echo count($reclamations); ?>)</h5>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">

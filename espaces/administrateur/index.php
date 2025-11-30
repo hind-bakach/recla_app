@@ -6,12 +6,39 @@ require_role('administrateur');
 
 $pdo = get_pdo();
 
-// Statistiques Globales
+// Helper de détection générique de colonnes (évite les erreurs Unknown column)
+if (!function_exists('detect_column')) {
+    function detect_column($pdo, $table, $candidates) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?");
+        foreach ($candidates as $col) {
+            $stmt->execute([$table, $col]);
+            if ($stmt->fetchColumn() > 0) { return $col; }
+        }
+        return null;
+    }
+}
+
+// Statistiques Globales (détection dynamique des colonnes de statut)
 $stats = [];
 $stats['total_claims'] = $pdo->query("SELECT COUNT(*) FROM reclamations")->fetchColumn();
-$stats['pending_claims'] = $pdo->query("SELECT COUNT(*) FROM reclamations WHERE statut = 'en_cours'")->fetchColumn();
-$stats['resolved_claims'] = $pdo->query("SELECT COUNT(*) FROM reclamations WHERE statut = 'resolu' OR statut = 'closed'")->fetchColumn();
-$stats['archived_claims'] = $pdo->query("SELECT COUNT(*) FROM reclamations WHERE statut = 'archive' OR statut = 'archived'")->fetchColumn();
+// Détecter la colonne de statut réelle
+$statusCol = detect_column($pdo, 'reclamations', ['statut','status','etat']);
+if ($statusCol) {
+    $pendingValues = ["en_cours","en_attente","pending"];
+    $resolvedValues = ["resolu","closed","traite"];
+    $archivedValues = ["archive","archived"];
+    $inPending = "'" . implode("','", $pendingValues) . "'";
+    $inResolved = "'" . implode("','", $resolvedValues) . "'";
+    $inArchived = "'" . implode("','", $archivedValues) . "'";
+    $stats['pending_claims'] = $pdo->query("SELECT COUNT(*) FROM reclamations WHERE `$statusCol` IN ($inPending)")->fetchColumn();
+    $stats['resolved_claims'] = $pdo->query("SELECT COUNT(*) FROM reclamations WHERE `$statusCol` IN ($inResolved)")->fetchColumn();
+    $stats['archived_claims'] = $pdo->query("SELECT COUNT(*) FROM reclamations WHERE `$statusCol` IN ($inArchived)")->fetchColumn();
+} else {
+    // Si aucune colonne de statut détectée, mettre les compteurs à 0
+    $stats['pending_claims'] = 0;
+    $stats['resolved_claims'] = 0;
+    $stats['archived_claims'] = 0;
+}
 $stats['users_count'] = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $stats['categories_count'] = $pdo->query("SELECT COUNT(*) FROM categories")->fetchColumn();
 $stats['resolution_rate'] = $stats['total_claims'] > 0 ? round(($stats['resolved_claims'] / $stats['total_claims']) * 100, 1) : 0;
@@ -43,16 +70,21 @@ $userNameCol = in_array('nom', $userCols) ? 'nom' : (in_array('name', $userCols)
 $catIdCol = in_array('id', $catCols) ? 'id' : ($catCols[0] ?? 'id');
 $catNameCol = in_array('nom', $catCols) ? 'nom' : (in_array('name', $catCols) ? 'name' : ($catCols[1] ?? $catIdCol));
 
-$reclamUserCol = in_array('user_id', $reclamCols) ? 'user_id' : (in_array('userId', $reclamCols) ? 'userId' : ($reclamCols[0] ?? 'user_id'));
-$reclamCatCol = in_array('category_id', $reclamCols) ? 'category_id' : (in_array('categoryId', $reclamCols) ? 'categoryId' : ($reclamCols[1] ?? 'category_id'));
-$reclamCreatedCol = in_array('created_at', $reclamCols) ? 'created_at' : ($reclamCols[2] ?? $reclamCols[0] ?? 'created_at');
+// Colonnes dynamiques pour reclamations
+$reclamIdCol = detect_column($pdo, $reclamTable, ['id','reclam_id','reclamation_id','id_reclamation','claim_id']) ?: 'id';
+$reclamUserCol = detect_column($pdo, $reclamTable, ['user_id','userId','utilisateur_id']) ?: 'user_id';
+$reclamCatCol = detect_column($pdo, $reclamTable, ['category_id','categorie_id','cat_id','categorie']) ?: 'category_id';
+$reclamCreatedCol = detect_column($pdo, $reclamTable, ['created_at','date_soumission','date_creation','submitted_at','date']) ?: 'created_at';
+$reclamStatusCol = detect_column($pdo, $reclamTable, ['statut','status','etat']) ?: 'statut';
+$reclamManagerCol = detect_column($pdo, $reclamTable, ['gestionnaire_id','manager_id','assigned_to','traitant_id']) ?: $reclamUserCol; // fallback
+$reclamSubmitDateCol = $reclamCreatedCol; // Pour calcul des délais
 
 // Construire la requête en échappant les noms de colonnes (utilisation basique)
-$query = "SELECT c.*, u." . $userNameCol . " AS user_name, cat." . $catNameCol . " AS category_nom\n";
-$query .= "    FROM " . $reclamTable . " c\n";
-$query .= "    LEFT JOIN users u ON c." . $reclamUserCol . " = u." . $userIdCol . "\n";
-$query .= "    LEFT JOIN categories cat ON c." . $reclamCatCol . " = cat." . $catIdCol . "\n";
-$query .= "    ORDER BY c." . $reclamCreatedCol . " DESC LIMIT 5";
+$query = "SELECT c.*, u.".$userNameCol." AS user_name, cat.".$catNameCol." AS category_nom "
+    ."FROM `".$reclamTable."` c "
+    ."LEFT JOIN `users` u ON c.`$reclamUserCol` = u.`$userIdCol` "
+    ."LEFT JOIN `categories` cat ON c.`$reclamCatCol` = cat.`$catIdCol` "
+    ."ORDER BY c.`$reclamCreatedCol` DESC LIMIT 5";
 
 try {
     $stmt = $pdo->query($query);
@@ -63,54 +95,44 @@ try {
     $latest_reclamations = $stmt->fetchAll();
 }
 
-// ===== ANALYSE DES TENDANCES PAR CATÉGORIE =====
+// ===== ANALYSE DES TENDANCES PAR CATÉGORIE (dynamiques) =====
 $categAnalysis = [];
 try {
-    $catQuery = "SELECT 
-                    cat." . $catNameCol . " as cat_name,
-                    COUNT(c.id) as total,
-                    SUM(CASE WHEN c.statut IN ('resolu', 'closed') THEN 1 ELSE 0 END) as resolved,
-                    SUM(CASE WHEN c.statut = 'en_cours' THEN 1 ELSE 0 END) as pending
-                FROM " . $reclamTable . " c
-                LEFT JOIN categories cat ON c." . $reclamCatCol . " = cat." . $catIdCol . "
-                GROUP BY cat." . $catIdCol . "
-                ORDER BY total DESC";
+    $catQuery = "SELECT cat.`$catNameCol` AS cat_name, 
+                        COUNT(c.`$reclamIdCol`) AS total,
+                        SUM(CASE WHEN c.`$reclamStatusCol` IN ('resolu','closed','traite') THEN 1 ELSE 0 END) AS resolved,
+                        SUM(CASE WHEN c.`$reclamStatusCol` IN ('en_cours','en_attente','pending') THEN 1 ELSE 0 END) AS pending
+                 FROM `".$reclamTable."` c
+                 LEFT JOIN `categories` cat ON c.`$reclamCatCol` = cat.`$catIdCol`
+                 GROUP BY cat.`$catIdCol`
+                 ORDER BY total DESC";
     $categAnalysis = $pdo->query($catQuery)->fetchAll();
-} catch (Exception $e) {
-    $categAnalysis = [];
-}
+} catch (Exception $e) { $categAnalysis = []; }
 
-// ===== ANALYSE DE L'EFFICACITÉ PAR GESTIONNAIRE =====
+// ===== ANALYSE DE L'EFFICACITÉ PAR GESTIONNAIRE (dynamiques) =====
 $managerAnalysis = [];
 try {
-    // Récupérer les gestionnaires et leurs statistiques
-    $managerQuery = "SELECT 
-                        u.nom as manager_name,
-                        u.user_id,
-                        COUNT(DISTINCT c.id) as handled_claims,
-                        SUM(CASE WHEN c.statut IN ('resolu', 'closed') THEN 1 ELSE 0 END) as resolved_claims,
-                        ROUND(AVG(TIMESTAMPDIFF(DAY, c.date_soumission, NOW())), 1) as avg_days_pending
-                    FROM users u
-                    LEFT JOIN reclamations c ON u.user_id = c.user_id AND c.statut = 'en_cours'
-                    WHERE u.role = 'gestionnaire'
-                    GROUP BY u.user_id
-                    ORDER BY handled_claims DESC";
+    $managerQuery = "SELECT u.`$userNameCol` AS manager_name, u.`$userIdCol` AS user_id,
+                            COUNT(DISTINCT c.`$reclamIdCol`) AS handled_claims,
+                            SUM(CASE WHEN c.`$reclamStatusCol` IN ('resolu','closed','traite') THEN 1 ELSE 0 END) AS resolved_claims,
+                            ROUND(AVG(CASE WHEN c.`$reclamStatusCol` IN ('resolu','closed','traite') THEN TIMESTAMPDIFF(DAY, c.`$reclamSubmitDateCol`, NOW()) END),1) AS avg_days_pending
+                     FROM `users` u
+                     LEFT JOIN `".$reclamTable."` c ON u.`$userIdCol` = c.`$reclamManagerCol`
+                     WHERE u.role = 'gestionnaire'
+                     GROUP BY u.`$userIdCol`
+                     ORDER BY handled_claims DESC";
     $managerAnalysis = $pdo->query($managerQuery)->fetchAll();
-} catch (Exception $e) {
-    $managerAnalysis = [];
-}
+} catch (Exception $e) { $managerAnalysis = []; }
 
-// ===== DÉLAI MOYEN DE TRAITEMENT =====
+// ===== DÉLAI MOYEN DE TRAITEMENT ===== (utilise colonnes dynamiques si possible)
 $avgProcessingTime = 0;
 try {
-    $timeQuery = "SELECT ROUND(AVG(TIMESTAMPDIFF(DAY, c.date_soumission, NOW())), 1) as avg_days
-                  FROM reclamations c
-                  WHERE c.statut IN ('resolu', 'closed')";
+    $dateCol = detect_column($pdo, 'reclamations', ['date_soumission','created_at','date_creation','submitted_at','date']) ?: 'date_soumission';
+    $statusCond = $statusCol ? "`$statusCol` IN ('resolu','closed','traite')" : "1=0"; // 1=0 si pas de statut -> pas de calcul
+    $timeQuery = "SELECT ROUND(AVG(TIMESTAMPDIFF(DAY, `$dateCol`, NOW())), 1) AS avg_days FROM reclamations WHERE $statusCond";
     $result = $pdo->query($timeQuery)->fetch();
     $avgProcessingTime = $result['avg_days'] ?? 0;
-} catch (Exception $e) {
-    $avgProcessingTime = 0;
-}
+} catch (Exception $e) { $avgProcessingTime = 0; }
 
 include '../../includes/head.php';
 ?>
@@ -339,5 +361,88 @@ include '../../includes/head.php';
     </div>
 
     <?php include '../../includes/footer.php'; ?>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    (function(){
+        // Données Catégories (échelle minimisée)
+        const categData = <?php echo json_encode($categAnalysis, JSON_UNESCAPED_UNICODE); ?>;
+        if (categData && categData.length > 0) {
+            const labels = categData.map(r => r.cat_name || '—');
+            const totals = categData.map(r => parseInt(r.total || 0,10));
+            const resolved = categData.map(r => parseInt(r.resolved || 0,10));
+            const pending = categData.map(r => parseInt(r.pending || 0,10));
+            const maxCat = Math.max(1, ...totals, ...resolved, ...pending);
+            const stepCat = Math.max(1, Math.ceil(maxCat / 5));
+            const catCanvas = document.createElement('canvas');
+            catCanvas.id = 'categoryChart';
+            catCanvas.style.maxHeight = '240px';
+            const target = document.querySelector('.card:has(h5 i.bi-graph-up) .card-body');
+            if (target) {
+                target.insertBefore(catCanvas, target.firstChild);
+            }
+            new Chart(catCanvas, {
+                type: 'bar',
+                data: { labels, datasets: [
+                    { label: 'Total', data: totals, backgroundColor: 'rgba(54,162,235,0.6)' },
+                    { label: 'Résolues', data: resolved, backgroundColor: 'rgba(75,192,192,0.7)' },
+                    { label: 'En cours', data: pending, backgroundColor: 'rgba(255,206,86,0.7)' }
+                ]},
+                options: {
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    layout:{ padding:{ top:4, right:8, bottom:4, left:8 } },
+                    plugins:{ legend:{ position:'bottom' } },
+                    scales:{
+                        y:{
+                            beginAtZero:true,
+                            suggestedMax: maxCat,
+                            ticks:{ stepSize: stepCat }
+                        },
+                        x:{ ticks:{ maxRotation:0 } }
+                    }
+                }
+            });
+        }
+
+        // Données Gestionnaires (échelle minimisée)
+        const managerData = <?php echo json_encode($managerAnalysis, JSON_UNESCAPED_UNICODE); ?>;
+        if (managerData && managerData.length > 0) {
+            const labels = managerData.map(r => r.manager_name || '—');
+            const handled = managerData.map(r => parseInt(r.handled_claims || 0,10));
+            const resolvedMgr = managerData.map(r => parseInt(r.resolved_claims || 0,10));
+            const maxMgr = Math.max(1, ...handled, ...resolvedMgr);
+            const stepMgr = Math.max(1, Math.ceil(maxMgr / 5));
+            const mgrCanvas = document.createElement('canvas');
+            mgrCanvas.id = 'managerChart';
+            mgrCanvas.style.maxHeight = '240px';
+            const target2 = document.querySelector('.card:has(h5 i.bi-person-check-fill) .card-body');
+            if (target2) {
+                target2.insertBefore(mgrCanvas, target2.firstChild);
+            }
+            new Chart(mgrCanvas, {
+                type: 'bar',
+                data: { labels, datasets: [
+                    { label: 'Dossiers', data: handled, backgroundColor: 'rgba(54,162,235,0.6)' },
+                    { label: 'Résolus', data: resolvedMgr, backgroundColor: 'rgba(34,197,94,0.7)' }
+                ]},
+                options: {
+                    indexAxis:'y',
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    layout:{ padding:{ top:4, right:8, bottom:4, left:8 } },
+                    plugins:{ legend:{ position:'bottom' } },
+                    scales:{
+                        x:{
+                            beginAtZero:true,
+                            suggestedMax: maxMgr,
+                            ticks:{ stepSize: stepMgr }
+                        },
+                        y:{ ticks:{ autoSkip:false } }
+                    }
+                }
+            });
+        }
+    })();
+    </script>
 </body>
 </html>

@@ -8,6 +8,59 @@ $pdo = get_pdo();
 $error = '';
 $success = '';
 
+// Modification d'un utilisateur
+if (isset($_POST['action']) && $_POST['action'] === 'edit' && isset($_POST['edit_id'])) {
+    $edit_id = (int)$_POST['edit_id'];
+    $nom = sanitize_input($_POST['edit_nom'] ?? '');
+    $email = sanitize_input($_POST['edit_email'] ?? '');
+    $role = $_POST['edit_role'] ?? '';
+    $new_password = $_POST['edit_password'] ?? '';
+
+    if (empty($nom) || empty($email) || empty($role)) {
+        $error = "Tous les champs obligatoires doivent être remplis.";
+    } else {
+        try {
+            // Vérifier que l'email n'est pas déjà utilisé par un autre utilisateur
+            $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
+            $stmt->execute([$email, $edit_id]);
+            if ($stmt->fetch()) {
+                $error = "Cet email est déjà utilisé par un autre utilisateur.";
+            } else {
+                // Détecter le nom correct de la colonne password
+                $passwordCol = 'password';
+                $colCheck = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='".DB_NAME."' AND TABLE_NAME='users'")->fetchAll(PDO::FETCH_COLUMN);
+                if (in_array('mot_de_passe', $colCheck)) {
+                    $passwordCol = 'mot_de_passe';
+                } elseif (in_array('pwd', $colCheck)) {
+                    $passwordCol = 'pwd';
+                }
+
+                // Construire la requête UPDATE
+                $updateFields = ['nom = ?', 'email = ?', 'role = ?'];
+                $updateValues = [$nom, $email, $role];
+
+                // Si un nouveau mot de passe est fourni, l'inclure
+                if (!empty($new_password)) {
+                    $updateFields[] = $passwordCol . ' = ?';
+                    $updateValues[] = password_hash($new_password, PASSWORD_DEFAULT);
+                }
+
+                $updateValues[] = $edit_id;
+                $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE user_id = ?";
+                $stmt = $pdo->prepare($sql);
+                
+                if ($stmt->execute($updateValues)) {
+                    $success = "Utilisateur modifié avec succès.";
+                } else {
+                    $error = "Erreur lors de la modification.";
+                }
+            }
+        } catch (PDOException $e) {
+            $error = "Erreur lors de la modification : " . $e->getMessage();
+        }
+    }
+}
+
 // Suppression d'un utilisateur
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     $id_to_delete = $_GET['delete'];
@@ -42,11 +95,11 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
 }
 
 // Ajout d'un utilisateur (Gestionnaire ou Admin)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nom = sanitize_input($_POST['nom']);
-    $email = sanitize_input($_POST['email']);
-    $password = $_POST['password'];
-    $role = $_POST['role'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['action']) || $_POST['action'] !== 'edit')) {
+    $nom = sanitize_input($_POST['nom'] ?? '');
+    $email = sanitize_input($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $role = $_POST['role'] ?? '';
 
     if (empty($nom) || empty($email) || empty($password) || empty($role)) {
         $error = "Tous les champs sont obligatoires.";
@@ -87,7 +140,25 @@ if (in_array('created_at', $colCheck)) {
 } elseif (in_array('created_date', $colCheck)) {
     $dateCol = 'created_date';
 }
-$users = $pdo->query("SELECT * FROM users WHERE role != 'administrateur' ORDER BY " . $dateCol . " DESC")->fetchAll();
+$search = sanitize_input($_GET['search'] ?? '');
+$roleFilter = sanitize_input($_GET['role_filter'] ?? '');
+
+$query = "SELECT * FROM users WHERE role != 'administrateur'";
+$params = [];
+if ($roleFilter !== '' && in_array($roleFilter, ['reclamant','gestionnaire','administrateur'])) {
+    $query .= " AND role = ?";
+    $params[] = $roleFilter;
+}
+if ($search !== '') {
+    // Recherche sur nom ou email
+    $query .= " AND (nom LIKE ? OR email LIKE ?)";
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
+}
+$query .= " ORDER BY " . $dateCol . " DESC";
+$stmtUsers = $pdo->prepare($query);
+$stmtUsers->execute($params);
+$users = $stmtUsers->fetchAll();
 
 include '../../includes/head.php';
 ?>
@@ -184,7 +255,20 @@ include '../../includes/head.php';
                     <div class="col-md-8">
                         <div class="card shadow-sm border-0 rounded-4">
                             <div class="card-header bg-white p-3 border-bottom">
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des utilisateurs</h5>
+                                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                                    <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des utilisateurs</h5>
+                                    <form class="d-flex gap-2" method="GET" action="users.php">
+                                        <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control form-control-sm" placeholder="Recherche nom/email">
+                                        <select name="role_filter" class="form-select form-select-sm" style="max-width:140px;">
+                                            <option value="">Rôle</option>
+                                            <option value="reclamant" <?php if($roleFilter==='reclamant') echo 'selected'; ?>>Réclamant</option>
+                                            <option value="gestionnaire" <?php if($roleFilter==='gestionnaire') echo 'selected'; ?>>Gestionnaire</option>
+                                            <option value="administrateur" <?php if($roleFilter==='administrateur') echo 'selected'; ?>>Admin</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel"></i></button>
+                                        <a href="users.php" class="btn btn-sm btn-outline-secondary" title="Réinitialiser"><i class="bi bi-x-circle"></i></a>
+                                    </form>
+                                </div>
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
@@ -215,6 +299,9 @@ include '../../includes/head.php';
                                                     </td>
                                                     <td class="text-end pe-4">
                                                         <?php $uid = $user['user_id'] ?? $user['id'] ?? null; if ($uid && $uid != $_SESSION['user_id']): ?>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#editUserModal" onclick="loadUserData(<?php echo htmlspecialchars($uid); ?>, <?php echo htmlspecialchars(json_encode($user)); ?>)">
+                                                                <i class="bi bi-pencil-square"></i>
+                                                            </button>
                                                             <a href="users.php?delete=<?php echo htmlspecialchars($uid); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
                                                                 <i class="bi bi-trash-fill"></i>
                                                             </a>
@@ -236,3 +323,65 @@ include '../../includes/head.php';
     <?php include '../../includes/footer.php'; ?>
 </body>
 </html>
+
+<!-- Modal d'édition d'utilisateur -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="editUserModalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Modifier un utilisateur
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm" method="POST" action="users.php">
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="edit_id" id="edit_id" value="">
+                    
+                    <div class="mb-3">
+                        <label for="edit_nom" class="form-label fw-bold">Nom complet</label>
+                        <input type="text" class="form-control" id="edit_nom" name="edit_nom" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_email" class="form-label fw-bold">Email</label>
+                        <input type="email" class="form-control" id="edit_email" name="edit_email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_role" class="form-label fw-bold">Rôle</label>
+                        <select class="form-select" id="edit_role" name="edit_role" required>
+                            <option value="reclamant">Réclamant</option>
+                            <option value="gestionnaire">Gestionnaire</option>
+                            <option value="administrateur">Administrateur</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_password" class="form-label fw-bold">Nouveau mot de passe <span class="text-muted">(optionnel)</span></label>
+                        <input type="password" class="form-control" id="edit_password" name="edit_password" placeholder="Laissez vide pour conserver le mot de passe actuel">
+                        <div class="form-text">Si vous souhaitez changer le mot de passe, entrez un nouveau. Sinon, laissez ce champ vide.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" form="editUserForm" class="btn btn-primary fw-bold">
+                    <i class="bi bi-check-circle me-1"></i>Enregistrer les modifications
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadUserData(userId, userData) {
+        // userData est un JSON object passed inline
+        document.getElementById('edit_id').value = userId;
+        document.getElementById('edit_nom').value = userData.nom || '';
+        document.getElementById('edit_email').value = userData.email || '';
+        document.getElementById('edit_role').value = userData.role || 'reclamant';
+        document.getElementById('edit_password').value = ''; // Always empty for security
+    }
+</script>

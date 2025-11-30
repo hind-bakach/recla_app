@@ -9,6 +9,7 @@ $pdo = get_pdo();
 // Filtrage
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
 $date_filter = isset($_GET['date']) ? $_GET['date'] : '';
+$user_filter = isset($_GET['user']) ? trim($_GET['user']) : '';
 
 $params = [];
 
@@ -60,6 +61,12 @@ if ($date_filter) {
     $params[] = $date_filter;
 }
 
+if ($user_filter) {
+    $sql .= " AND (u." . $userNameCol . " LIKE ? OR u.email LIKE ?)";
+    $params[] = '%' . $user_filter . '%';
+    $params[] = '%' . $user_filter . '%';
+}
+
 $sql .= " ORDER BY c." . $reclamDateCol . " DESC";
 
 $stmt = $pdo->prepare($sql);
@@ -67,12 +74,32 @@ $stmt->execute($params);
 $claims = $stmt->fetchAll();
 
 // Statistiques rapides
-$stmt = $pdo->query("SELECT 
-    COUNT(*) as total,
-    SUM(CASE WHEN statut = 'en_cours' THEN 1 ELSE 0 END) as en_cours,
-    SUM(CASE WHEN statut = 'traite' THEN 1 ELSE 0 END) as traite
-    FROM reclamations");
-$stats = $stmt->fetch();
+// Statistiques rapides (colonne statut dynamique + valeurs présentes)
+$presentStatuses = [];
+try {
+    $presentStatuses = $pdo->query("SELECT DISTINCT `".$reclamStatusCol."` AS s FROM " . $reclamTable)->fetchAll(PDO::FETCH_COLUMN);
+} catch (Exception $e) { $presentStatuses = []; }
+
+$countTotal = (int)$pdo->query("SELECT COUNT(*) FROM " . $reclamTable)->fetchColumn();
+
+// Choisir les libellés compatibles selon ce qui existe
+function statusExists($arr, $candidates){ foreach($candidates as $c){ if(in_array($c,$arr)) return $c; } return null; }
+$valEnCours = statusExists($presentStatuses, ['en_cours','en cours','encours']);
+$valTraite  = statusExists($presentStatuses, ['traite','traité','resolu','résolu']);
+
+$countEnCours = 0; $countTraite = 0;
+if ($valEnCours) {
+    $q = $pdo->prepare("SELECT COUNT(*) FROM " . $reclamTable . " WHERE `".$reclamStatusCol."` = ?");
+    $q->execute([$valEnCours]);
+    $countEnCours = (int)$q->fetchColumn();
+}
+if ($valTraite) {
+    $q = $pdo->prepare("SELECT COUNT(*) FROM " . $reclamTable . " WHERE `".$reclamStatusCol."` = ?");
+    $q->execute([$valTraite]);
+    $countTraite = (int)$q->fetchColumn();
+}
+
+$stats = [ 'total' => $countTotal, 'en_cours' => $countEnCours, 'traite' => $countTraite ];
 
 include '../../includes/head.php';
 ?>
@@ -121,11 +148,31 @@ include '../../includes/head.php';
                                 <label class="form-label small fw-bold">Statut</label>
                                 <select class="form-select form-select-sm" name="status" onchange="this.form.submit()">
                                     <option value="">Tous</option>
-                                    <option value="en_cours" <?php echo $status_filter == 'en_cours' ? 'selected' : ''; ?>>En cours</option>
-                                    <option value="traite" <?php echo $status_filter == 'traite' ? 'selected' : ''; ?>>Traité</option>
-                                    <option value="attente_info" <?php echo $status_filter == 'attente_info' ? 'selected' : ''; ?>>Attente info</option>
-                                    <option value="ferme" <?php echo $status_filter == 'ferme' ? 'selected' : ''; ?>>Fermé</option>
+                                    <?php 
+                                    // Construire options à partir des valeurs présentes
+                                    $options = [];
+                                    foreach ($presentStatuses as $s) {
+                                        $label = get_status_label($s);
+                                        $options[] = ['value'=>$s,'label'=>$label];
+                                    }
+                                    // Si aucune donnée, proposer jeu par défaut compatible
+                                    if (empty($options)) {
+                                        $options = [
+                                            ['value'=>'en_cours','label'=>get_status_label('en_cours')],
+                                            ['value'=>'traite','label'=>get_status_label('traite')],
+                                            ['value'=>'attente_info','label'=>get_status_label('attente_info')],
+                                            ['value'=>'ferme','label'=>get_status_label('ferme')],
+                                        ];
+                                    }
+                                    foreach ($options as $opt) {
+                                        echo '<option value="'.htmlspecialchars($opt['value']).'" '.($status_filter==$opt['value']?'selected':'').'>'.htmlspecialchars($opt['label']).'</option>';
+                                    }
+                                    ?>
                                 </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Réclamant</label>
+                                <input type="text" class="form-control form-control-sm" name="user" value="<?php echo htmlspecialchars($user_filter); ?>" placeholder="Nom">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Date</label>
