@@ -91,6 +91,16 @@ if (!isset($reclamation['updated_at'])) {
     }
 }
 
+// Ensure `sujet` key exists to avoid undefined index warnings
+if (!isset($reclamation['sujet'])) {
+    $sujetCol = detect_column($pdo, 'reclamations', ['sujet', 'subject', 'titre', 'title', 'objet', 'object']);
+    if ($sujetCol && isset($reclamation[$sujetCol])) {
+        $reclamation['sujet'] = $reclamation[$sujetCol];
+    } else {
+        $reclamation['sujet'] = 'Sans sujet';
+    }
+}
+
 // Récupérer les pièces jointes avec les colonnes réelles
 $sql = "SELECT piece_id, reclam_id, nom_fichier, chemin_acces FROM pieces_jointes WHERE reclam_id = ?";
 $stmt = $pdo->prepare($sql);
@@ -221,147 +231,548 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
 
 include '../../includes/head.php';
 ?>
+<link rel="stylesheet" href="../../css/modern.css">
 
-<body class="bg-light">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-speedometer2 me-2"></i>Espace Réclamant</a>
-            <div class="ms-auto">
-                <a class="btn btn-light btn-sm fw-bold text-primary" href="index.php">
-                    <i class="bi bi-arrow-left me-1"></i> Retour au Tableau de Bord
-                </a>
+<style>
+    body {
+        background: linear-gradient(135deg, #cffafe 0%, #e0f2fe 50%, #e0e7ff 100%);
+        min-height: 100vh;
+    }
+    
+    .navbar-minimal {
+        background-color: #ffffff;
+        border-bottom: none;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-base);
+        animation: slideDown 0.5s ease-out;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .navbar-brand {
+        color: var(--gray-900) !important;
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+    
+    .btn-logout {
+        color: var(--primary-blue) !important;
+        font-weight: 500;
+        background: transparent;
+        border: none;
+        transition: var(--transition-base);
+    }
+    
+    .btn-logout:hover {
+        color: var(--primary-blue-dark) !important;
+    }
+    
+    .main-content-container {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: 2.5rem;
+        box-shadow: var(--shadow-lg);
+        margin-bottom: 2rem;
+        margin-top: 2rem;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .section-title {
+        color: var(--gray-500);
+        font-weight: 500;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .main-title {
+        color: var(--gray-900);
+        font-weight: 700;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-back {
+        background: var(--gradient-blue);
+        color: white;
+        border: none;
+        padding: 0.625rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        transition: all var(--transition-base);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-back:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-xl);
+        color: white;
+    }
+    
+    .detail-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-xl);
+        padding: 2.5rem;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 2rem;
+        animation: fadeInUp 0.6s ease-out;
+        transition: var(--transition-base);
+    }
+    
+    .detail-card:hover {
+        box-shadow: var(--shadow-xl);
+        transform: translateY(-2px);
+    }
+    
+    .badge-status {
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-full);
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .info-meta {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-right: 1.5rem;
+    }
+    
+    .info-meta i {
+        color: var(--primary-blue);
+    }
+    
+    .description-box {
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin: 2rem 0;
+        transition: var(--transition-base);
+        line-height: 1.8;
+    }
+    
+    .description-box:hover {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+    }
+    
+    .attachment-btn {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        color: var(--gray-700);
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius-md);
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        transition: all var(--transition-base);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .attachment-btn:hover {
+        background: var(--gradient-blue);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .comment-item {
+        animation: slideInLeft 0.5s ease-out backwards;
+        margin-bottom: 2rem;
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .comment-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        font-size: 1.25rem;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-base);
+    }
+    
+    .comment-item:hover .comment-avatar {
+        transform: scale(1.1) rotate(5deg);
+    }
+    
+    .comment-bubble {
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        transition: var(--transition-base);
+        position: relative;
+        line-height: 1.7;
+    }
+    
+    .comment-bubble::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 20px;
+        width: 0;
+        height: 0;
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+        border-right: 8px solid var(--gray-200);
+    }
+    
+    .comment-item:hover .comment-bubble {
+        box-shadow: var(--shadow-lg);
+        transform: translateX(5px);
+    }
+    
+    .role-badge {
+        background: var(--gradient-blue);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .comment-form textarea {
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        transition: all var(--transition-base);
+        resize: vertical;
+        min-height: 120px;
+    }
+    
+    .comment-form textarea:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .btn-send {
+        background: var(--gradient-blue);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        transition: all var(--transition-base);
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-send::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn-send:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .btn-send:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-2xl);
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 2px solid var(--gray-200);
+    }
+    
+    .section-header i {
+        font-size: 1.5rem;
+        color: var(--primary-blue);
+        animation: bounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--gray-400);
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--gray-300);
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+</style>
+
+<script src="../../js/main.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('comment');
+    if (textarea) {
+        textarea.addEventListener('focus', function() {
+            this.style.minHeight = '150px';
+        });
+        
+        const counter = document.createElement('small');
+        counter.style.float = 'right';
+        counter.style.color = 'var(--gray-400)';
+        textarea.parentElement.appendChild(counter);
+        
+        textarea.addEventListener('input', function() {
+            counter.textContent = `${this.value.length} caractères`;
+        });
+    }
+    
+    const form = document.querySelector('.comment-form');
+    if (form) {
+        form.addEventListener('submit', function() {
+            const btn = this.querySelector('.btn-send');
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Envoi...';
+                btn.disabled = true;
+            }
+        });
+    }
+});
+</script>
+
+<style>
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.spin {
+    animation: spin 1s linear infinite;
+}
+</style>
+
+<body>
+    <!-- Navbar Minimaliste -->
+    <nav class="navbar navbar-minimal navbar-expand-lg">
+        <div class="container py-2">
+            <a class="navbar-brand" href="index.php">
+                <i class="bi bi-chat-square-text me-2" style="color: #0891b2;"></i>Gestion des Réclamations
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" style="border-color: #e5e7eb;">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-3">
+                        <span style="color: #6b7280;">Bonjour, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-logout" href="../../frontend/deconnexion.php">
+                            <i class="bi bi-box-arrow-right me-1"></i>Déconnexion
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container py-5">
-        <div class="row g-4">
-            <!-- Détails de la réclamation -->
-            <div class="col-lg-8">
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold text-primary">
-                            <i class="bi bi-file-text me-2"></i>Détails de la réclamation #<?php echo $reclamation['id']; ?>
-                        </h5>
-                        <span class="badge rounded-pill <?php echo get_status_badge($reclamation['statut']); ?> px-3 py-2">
-                            <?php echo get_status_label($reclamation['statut']); ?>
-                        </span>
-                    </div>
-                    <div class="card-body p-4">
-                        <h4 class="fw-bold mb-3"><?php echo htmlspecialchars($reclamation['sujet']); ?></h4>
-                        
-                        <div class="mb-4 text-muted small">
-                            <span class="me-3"><i class="bi bi-calendar3 me-1"></i> Créé le <?php echo format_date($reclamation['created_at']); ?></span>
-                            <span class="me-3"><i class="bi bi-tag me-1"></i> <?php echo htmlspecialchars($reclamation['categorie_nom']); ?></span>
-                        </div>
-
-                        <div class="p-3 bg-light rounded-3 mb-4 border">
-                            <p class="mb-0" style="white-space: pre-line;"><?php echo htmlspecialchars($reclamation['description']); ?></p>
-                        </div>
-
-                        <?php if (count($attachments) > 0): ?>
-                            <h6 class="fw-bold mb-3"><i class="bi bi-paperclip me-2"></i>Pièces jointes</h6>
-                            <div class="row g-2">
-                                <?php foreach ($attachments as $att): ?>
-                                    <div class="col-auto">
-                                        <a href="../../<?php echo $att['chemin_acces']; ?>" download="<?php echo $att['nom_fichier']; ?>" class="btn btn-outline-secondary btn-sm">
-                                            <i class="bi bi-file-earmark-down me-1"></i> <?php echo $att['nom_fichier']; ?>
-                                        </a>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+    <div class="container pb-5">
+        <div class="main-content-container">
+            <!-- En-tête -->
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h6 class="section-title">Espace Réclamant</h6>
+                    <h1 class="main-title">Détails de la réclamation</h1>
                 </div>
-
-                <!-- Historique / Commentaires -->
-                <div class="card shadow-sm border-0 rounded-4">
-                    <div class="card-header bg-white p-4 border-bottom">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-chat-dots me-2 text-primary"></i>Historique & Échanges</h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="timeline">
-                            <?php if (count($comments) > 0): ?>
-                                <?php foreach ($comments as $comment): ?>
-                                    <div class="d-flex mb-4">
-                                        <div class="flex-shrink-0">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold <?php echo $comment['user_role'] == 'reclamant' ? 'bg-primary' : 'bg-warning'; ?>" style="width: 40px; height: 40px;">
-                                                <?php echo strtoupper(substr($comment['user_name'], 0, 1)); ?>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <div class="bg-light p-3 rounded-3">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <h6 class="fw-bold mb-0 <?php echo $comment['user_role'] == 'reclamant' ? 'text-primary' : 'text-dark'; ?>">
-                                                        <?php echo htmlspecialchars($comment['user_name']); ?>
-                                                        <span class="badge bg-secondary ms-2" style="font-size: 0.7em;"><?php echo $comment['user_role']; ?></span>
-                                                    </h6>
-                                                    <small class="text-muted"><?php echo format_date($comment['created_at']); ?></small>
-                                                </div>
-                                                <p class="mb-0 small"><?php echo nl2br(htmlspecialchars($comment['comment'])); ?></p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <p class="text-center text-muted my-4">Aucun échange pour le moment.</p>
-                            <?php endif; ?>
-                        </div>
-
-                        <!-- Formulaire de réponse -->
-                        <?php if ($reclamation['statut'] !== 'ferme'): ?>
-                            <hr class="my-4">
-                            <form method="POST" action="details.php?id=<?php echo $reclamation_id; ?>">
-                                <div class="mb-3">
-                                    <label for="comment" class="form-label fw-bold">Ajouter un message</label>
-                                    <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="Votre message..." required></textarea>
-                                </div>
-                                <div class="text-end">
-                                    <button type="submit" class="btn btn-primary fw-bold">
-                                        <i class="bi bi-send-fill me-2"></i>Envoyer
-                                    </button>
-                                </div>
-                            </form>
-                        <?php else: ?>
-                            <div class="alert alert-secondary text-center mb-0">
-                                <i class="bi bi-lock-fill me-2"></i>Cette réclamation est fermée. Vous ne pouvez plus ajouter de commentaires.
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
+                <a href="index.php" class="btn-back">
+                    <i class="bi bi-arrow-left me-2"></i>Retour au tableau de bord
+                </a>
             </div>
 
-            <!-- Sidebar Info -->
-            <div class="col-lg-4">
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-body p-4">
-                        <h6 class="fw-bold text-uppercase text-muted mb-3 small">Information</h6>
-                        <ul class="list-unstyled mb-0">
-                            <li class="mb-3 d-flex align-items-center">
-                                <i class="bi bi-info-circle text-primary me-3 fs-5"></i>
-                                <div>
-                                    <small class="d-block text-muted">Statut actuel</small>
-                                    <span class="fw-bold"><?php echo get_status_label($reclamation['statut']); ?></span>
-                                </div>
-                            </li>
-                            <li class="mb-3 d-flex align-items-center">
-                                <i class="bi bi-calendar-event text-primary me-3 fs-5"></i>
-                                <div>
-                                    <small class="d-block text-muted">Date de création</small>
-                                    <span class="fw-bold"><?php echo format_date($reclamation['created_at']); ?></span>
-                                </div>
-                            </li>
-                            <li class="d-flex align-items-center">
-                                <i class="bi bi-arrow-repeat text-primary me-3 fs-5"></i>
-                                <div>
-                                    <small class="d-block text-muted">Dernière mise à jour</small>
-                                    <span class="fw-bold"><?php echo format_date($reclamation['updated_at']); ?></span>
-                                </div>
-                            </li>
-                        </ul>
+            <!-- Détails de la réclamation -->
+            <div class="detail-card">
+                <div class="section-header">
+                    <i class="bi bi-file-text"></i>
+                    <h5 class="mb-0 fw-bold" style="color: var(--gray-900);">
+                        Réclamation #<?php echo $reclamation['id']; ?>
+                    </h5>
+                    <div class="ms-auto">
+                        <?php 
+                            $statut = $reclamation['statut'];
+                            $badge_class = '';
+                            $statut_label = '';
+                            
+                            if ($statut === 'ferme' || $statut === 'fermee' || $statut === 'closed') {
+                                $badge_class = 'bg-secondary-subtle text-secondary-emphasis';
+                                $statut_label = 'Fermée';
+                            } elseif ($statut === 'traite' || $statut === 'traitee' || $statut === 'acceptee' || $statut === 'accepted') {
+                                $badge_class = 'bg-primary-subtle text-primary-emphasis';
+                                $statut_label = 'Acceptée';
+                            } elseif (stripos($statut, 'attente') !== false || stripos($statut, 'info') !== false || stripos($statut, 'pending') !== false) {
+                                $badge_class = 'bg-danger-subtle text-danger-emphasis';
+                                $statut_label = 'En attente info';
+                            } elseif ($statut === 'en_cours' || $statut === 'in_progress') {
+                                $badge_class = 'bg-success-subtle text-success-emphasis';
+                                $statut_label = 'En cours de traitement';
+                            } else {
+                                $badge_class = 'bg-success-subtle text-success-emphasis';
+                                $statut_label = 'En cours de traitement';
+                            }
+                        ?>
+                        <span class="badge <?php echo $badge_class; ?> badge-status">
+                            <?php echo $statut_label; ?>
+                        </span>
                     </div>
                 </div>
+                    
+                <h3 class="fw-bold mb-3" style="color: var(--gray-900);"><?php echo htmlspecialchars($reclamation['sujet']); ?></h3>
+                
+                <div class="mb-4 d-flex gap-4">
+                    <span class="info-meta">
+                        <i class="bi bi-calendar3"></i>
+                        Créé le <?php echo format_date($reclamation['created_at']); ?>
+                    </span>
+                    <span class="info-meta">
+                        <i class="bi bi-tag"></i>
+                        <?php echo htmlspecialchars($reclamation['categorie_nom'] ?? 'Non catégorisé'); ?>
+                    </span>
+                </div>
+
+                <div class="description-box">
+                    <p class="mb-0" style="white-space: pre-line; color: var(--gray-700);"><?php echo htmlspecialchars($reclamation['description']); ?></p>
+                </div>
+
+                <?php if (count($attachments) > 0): ?>
+                    <div class="section-header mt-4">
+                        <i class="bi bi-paperclip"></i>
+                        <h6 class="mb-0 fw-bold" style="color: var(--gray-900);">Pièces jointes</h6>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <?php foreach ($attachments as $att): ?>
+                            <a href="../../<?php echo $att['chemin_acces']; ?>" download="<?php echo $att['nom_fichier']; ?>" class="attachment-btn">
+                                <i class="bi bi-file-earmark-arrow-down"></i>
+                                <?php echo $att['nom_fichier']; ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Historique / Commentaires -->
+            <div class="detail-card">
+                <div class="section-header">
+                    <i class="bi bi-chat-dots"></i>
+                    <h5 class="mb-0 fw-bold" style="color: var(--gray-900);">Historique & Échanges</h5>
+                </div>
+                
+                <div class="timeline">
+                    <?php if (count($comments) > 0): ?>
+                        <?php foreach ($comments as $comment): ?>
+                            <div class="comment-item d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="comment-avatar <?php echo $comment['user_role'] == 'reclamant' ? 'bg-primary' : 'bg-warning'; ?>">
+                                        <?php echo strtoupper(substr($comment['user_name'], 0, 1)); ?>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="comment-bubble">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <strong style="color: var(--gray-900);"><?php echo htmlspecialchars($comment['user_name']); ?></strong>
+                                                <span class="role-badge ms-2"><?php echo $comment['user_role']; ?></span>
+                                            </div>
+                                            <small class="text-muted"><?php echo format_date($comment['created_at']); ?></small>
+                                        </div>
+                                        <p class="mb-0" style="color: var(--gray-700);"><?php echo nl2br(htmlspecialchars($comment['comment'])); ?></p>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p class="mt-3">Aucun échange pour le moment.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Formulaire de réponse -->
+                <?php if ($reclamation['statut'] !== 'ferme'): ?>
+                    <hr class="my-4" style="border-color: var(--gray-200);">
+                    <form method="POST" action="details.php?id=<?php echo $reclamation_id; ?>" class="comment-form">
+                        <div class="mb-3">
+                            <label for="comment" class="form-label fw-semibold" style="color: var(--gray-700);">
+                                <i class="bi bi-chat-left-text me-2" style="color: var(--primary-blue);"></i>
+                                Ajouter un message
+                            </label>
+                            <textarea class="form-control" id="comment" name="comment" 
+                                      placeholder="Votre message..." 
+                                      required></textarea>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn-send">
+                                <i class="bi bi-send-fill me-2"></i>Envoyer
+                            </button>
+                        </div>
+                    </form>
+                <?php else: ?>
+                    <div class="alert mb-0" style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca; color: var(--danger); text-align: center; padding: 1rem; border-radius: var(--radius-lg);">
+                        <i class="bi bi-lock-fill me-2"></i>Cette réclamation est fermée. Vous ne pouvez plus ajouter de commentaires.
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
