@@ -138,93 +138,63 @@ include '../../includes/head.php';
 ?>
 
 <body class="bg-light">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-shield-lock-fill me-2"></i>Espace Administrateur</a>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">Admin: <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
-                <a class="btn btn-outline-light btn-sm fw-bold" href="../../frontend/deconnexion.php">
-                    <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php include '../../includes/navbar_admin.php'; ?>
+    <?php include '../../includes/sidebar_admin.php'; ?>
 
-    <div class="container-fluid py-4">
-        <div class="row g-4">
-            <!-- Sidebar Menu -->
-            <div class="col-lg-2">
-                <div class="list-group shadow-sm rounded-4 border-0">
-                    <a href="index.php" class="list-group-item list-group-item-action active fw-bold" aria-current="true">
-                        <i class="bi bi-speedometer2 me-2"></i>Tableau de Bord
-                    </a>
-                    <a href="users.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-people-fill me-2"></i>Utilisateurs
-                    </a>
-                    <a href="categories.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-tags-fill me-2"></i>Catégories
-                    </a>
-                    <a href="reclamations.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-inbox-fill me-2"></i>Réclamations
-                    </a>
-                </div>
-            </div>
-
-            <!-- Contenu Principal -->
-            <div class="col-lg-10">
+    <!-- Contenu Principal -->
+    <div class="container-fluid bg-light" style="padding: 2rem;">
                 <!-- Cartes Stats -->
-                <div class="row g-4 mb-4">
+                <div class="row g-3 mb-4">
                     <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-4 bg-primary text-white h-100">
-                            <div class="card-body p-4">
-                                <div class="d-flex justify-content-between align-items-center">
+                        <div class="card border-0 shadow-sm rounded-3 h-100" style="background: linear-gradient(135deg, #2c5f7f 0%, #1e4563 100%);">
+                            <div class="card-body p-3 text-white">
+                                <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="text-uppercase mb-2 opacity-75">Réclamations</h6>
-                                        <h2 class="display-6 fw-bold mb-0"><?php echo $stats['total_claims']; ?></h2>
+                                        <h6 class="text-uppercase mb-2 fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px; opacity: 0.9;">RÉCLAMATIONS</h6>
+                                        <h2 class="display-4 fw-bold mb-0"><?php echo $stats['total_claims']; ?></h2>
                                     </div>
-                                    <i class="bi bi-inbox-fill fs-1 opacity-50"></i>
+                                    <i class="bi bi-inbox-fill" style="font-size: 2rem; opacity: 0.4;"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-4 bg-warning text-dark h-100">
-                            <div class="card-body p-4">
-                                <div class="d-flex justify-content-between align-items-center">
+                        <div class="card border-0 shadow-sm rounded-3 h-100" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%);">
+                            <div class="card-body p-3 text-white">
+                                <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="text-uppercase mb-2 opacity-75">En Attente</h6>
-                                        <h2 class="display-6 fw-bold mb-0"><?php echo $stats['pending_claims']; ?></h2>
+                                        <h6 class="text-uppercase mb-2 fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px; opacity: 0.9;">EN ATTENTE</h6>
+                                        <h2 class="display-4 fw-bold mb-0"><?php echo $stats['pending_claims']; ?></h2>
                                     </div>
-                                    <i class="bi bi-hourglass-split fs-1 opacity-50"></i>
+                                    <i class="bi bi-hourglass-split" style="font-size: 2rem; opacity: 0.4;"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-4 bg-success text-white h-100">
-                            <div class="card-body p-4">
-                                <div class="d-flex justify-content-between align-items-center">
+                        <div class="card border-0 shadow-sm rounded-3 h-100" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                            <div class="card-body p-3 text-white">
+                                <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="text-uppercase mb-2 opacity-75">Résolues</h6>
-                                        <h2 class="display-6 fw-bold mb-0"><?php echo $stats['resolved_claims']; ?></h2>
-                                        <small class="opacity-75"><?php echo $stats['resolution_rate']; ?>% taux</small>
+                                        <h6 class="text-uppercase mb-2 fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px; opacity: 0.9;">RÉSOLUES</h6>
+                                        <h2 class="display-4 fw-bold mb-0"><?php echo $stats['resolved_claims']; ?></h2>
+                                        <small class="opacity-90 fw-semibold"><?php echo $stats['resolution_rate']; ?>% taux</small>
                                     </div>
-                                    <i class="bi bi-check-circle-fill fs-1 opacity-50"></i>
+                                    <i class="bi bi-check-circle-fill" style="font-size: 2rem; opacity: 0.4;"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card border-0 shadow-sm rounded-4 bg-info text-white h-100">
-                            <div class="card-body p-4">
-                                <div class="d-flex justify-content-between align-items-center">
+                        <div class="card border-0 shadow-sm rounded-3 h-100" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                            <div class="card-body p-3 text-white">
+                                <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="text-uppercase mb-2 opacity-75">Délai Moyen</h6>
-                                        <h2 class="display-6 fw-bold mb-0"><?php echo $avgProcessingTime; ?></h2>
-                                        <small class="opacity-75">jours</small>
+                                        <h6 class="text-uppercase mb-2 fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px; opacity: 0.9;">DÉLAI MOYEN</h6>
+                                        <h2 class="display-4 fw-bold mb-0"><?php echo $avgProcessingTime; ?></h2>
+                                        <small class="opacity-90 fw-semibold">Jours</small>
                                     </div>
-                                    <i class="bi bi-calendar-event fs-1 opacity-50"></i>
+                                    <i class="bi bi-calendar-event" style="font-size: 2rem; opacity: 0.4;"></i>
                                 </div>
                             </div>
                         </div>
@@ -232,11 +202,11 @@ include '../../includes/head.php';
                 </div>
 
                 <!-- Analyse des Tendances par Catégorie -->
-                <div class="row g-4 mb-4 mt-2">
+                <div class="row g-3 mb-4">
                     <div class="col-lg-6">
-                        <div class="card shadow-sm border-0 rounded-4">
-                            <div class="card-header bg-white p-3 border-bottom">
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-graph-up me-2 text-primary"></i>Tendances par Catégorie</h5>
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white p-3 border-0" style="background-color: #bfc9cf8c !important;">
+                                <h6 class="mb-0 fw-bold text-uppercase" style="font-size: 0.90rem; letter-spacing: 0.5px;"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Tendances par Catégorie</h6>
                             </div>
                             <div class="card-body p-0">
                                 <?php if (!empty($categAnalysis)): ?>
@@ -276,9 +246,9 @@ include '../../includes/head.php';
 
                     <!-- Efficacité des Gestionnaires -->
                     <div class="col-lg-6">
-                        <div class="card shadow-sm border-0 rounded-4">
-                            <div class="card-header bg-white p-3 border-bottom">
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-person-check-fill me-2 text-primary"></i>Efficacité des Gestionnaires</h5>
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white p-3 border-0" style="background-color: #bfc9cf8c !important;">
+                                <h6 class="mb-0 fw-bold text-uppercase" style="font-size: 0.90rem; letter-spacing: 0.5px;"><i class="bi bi-people-fill me-2 text-primary"></i>Efficacité des Gestionnaires</h6>
                             </div>
                             <div class="card-body p-0">
                                 <?php if (!empty($managerAnalysis)): ?>
@@ -313,32 +283,32 @@ include '../../includes/head.php';
                 </div>
 
                 <!-- Dernières activités -->
-                <div class="card shadow-sm border-0 rounded-4">
-                    <div class="card-header bg-white p-3 border-bottom">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-activity me-2 text-primary"></i>Dernières Réclamations</h5>
+                <div class="card shadow-sm border-0 rounded-3">
+                    <div class="card-header bg-white p-3 border-0" style="background-color: #bfc9cf8c !important;">
+                        <h6 class="mb-0 fw-bold text-uppercase" style="font-size: 0.90rem; letter-spacing: 0.5px;"><i class="bi bi-list-check me-2 text-primary"></i>Dernières Réclamations</h6>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light text-muted text-uppercase small">
+                                <thead style="background-color: #343a40; color: white;">
                                     <tr>
-                                        <th class="ps-4 py-3">ID</th>
-                                        <th class="py-3">Utilisateur</th>
-                                        <th class="py-3">Sujet</th>
-                                        <th class="py-3">Catégorie</th>
-                                        <th class="py-3">Date</th>
-                                        <th class="py-3">Statut</th>
+                                        <th class="ps-4 py-3 text-uppercase fw-semibold" style="font-size: 0.80rem;">ID</th>
+                                        <th class="py-3 text-uppercase fw-semibold" style="font-size: 0.80rem;">RÉCLAMANT</th>
+                                        <th class="py-3 text-uppercase fw-semibold" style="font-size: 0.80rem;">SUJET</th>
+                                        <th class="py-3 text-uppercase fw-semibold" style="font-size: 0.80rem;">CATÉGORIE</th>
+                                        <th class="py-3 text-uppercase fw-semibold" style="font-size: 0.80rem;">DATE</th>
+                                        <th class="py-3 text-uppercase fw-semibold" style="font-size: 0.80rem;">STATUT</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (!empty($latest_reclamations) && is_array($latest_reclamations)): ?>
                                         <?php foreach ($latest_reclamations as $reclamation): ?>
-                                            <tr>
-                                                <td class="ps-4 fw-bold">#<?php echo htmlspecialchars($reclamation['reclam_id'] ?? $reclamation['id'] ?? $reclamation['reclamation_id'] ?? ''); ?></td>
-                                                <td><?php echo htmlspecialchars($reclamation['user_name'] ?? $reclamation['nom'] ?? $reclamation['name'] ?? '—'); ?></td>
-                                                <td><?php echo htmlspecialchars($reclamation['objet'] ?? $reclamation['sujet'] ?? ''); ?></td>
-                                                <td><span class="badge bg-light text-dark border"><?php echo htmlspecialchars($reclamation['category_nom'] ?? $reclamation['categorie_nom'] ?? $reclamation['categorie'] ?? '—'); ?></span></td>
-                                                <td><?php echo !empty($reclamation['date_soumission'] ?? $reclamation['created_at'] ?? null) ? format_date($reclamation['date_soumission'] ?? $reclamation['created_at']) : ''; ?></td>
+                                            <tr style="border-bottom: 1px solid #e5e7eb;">
+                                                <td class="ps-4 fw-bold" style="color: #374151;">#<?php echo htmlspecialchars($reclamation['reclam_id'] ?? $reclamation['id'] ?? $reclamation['reclamation_id'] ?? ''); ?></td>
+                                                <td style="color: #111827;"><?php echo htmlspecialchars($reclamation['user_name'] ?? $reclamation['nom'] ?? $reclamation['name'] ?? '—'); ?></td>
+                                                <td style="color: #374151;"><?php echo htmlspecialchars($reclamation['objet'] ?? $reclamation['sujet'] ?? ''); ?></td>
+                                                <td><span class="badge" style="background-color: #f3f4f6; color: #374151; font-weight: 500;"><?php echo htmlspecialchars($reclamation['category_nom'] ?? $reclamation['categorie_nom'] ?? $reclamation['categorie'] ?? '—'); ?></span></td>
+                                                <td style="color: #6b7280;"><?php echo !empty($reclamation['date_soumission'] ?? $reclamation['created_at'] ?? null) ? format_date($reclamation['date_soumission'] ?? $reclamation['created_at']) : ''; ?></td>
                                                 <td>
                                                     <span class="badge rounded-pill <?php echo get_status_badge($reclamation['statut'] ?? $reclamation['status'] ?? ''); ?>">
                                                         <?php echo get_status_label($reclamation['statut'] ?? $reclamation['status'] ?? ''); ?>
@@ -361,7 +331,41 @@ include '../../includes/head.php';
     </div>
 
     <?php include '../../includes/footer.php'; ?>
+    <?php include '../../includes/admin_styles.php'; ?>
+    
+    <style>
+        body { background-color: #f5f5f5; }
+        .sidebar-link {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .sidebar-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff !important;
+            border-left: 4px solid #14b8a6;
+        }
+        
+        /* Animation pour les cartes statistiques */
+        .col-md-3 .card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .col-md-3 .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+    </style>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../../js/admin-animations.js"></script>
     <script>
     (function(){
         // Données Catégories (échelle minimisée)
@@ -375,30 +379,43 @@ include '../../includes/head.php';
             const stepCat = Math.max(1, Math.ceil(maxCat / 5));
             const catCanvas = document.createElement('canvas');
             catCanvas.id = 'categoryChart';
-            catCanvas.style.maxHeight = '240px';
-            const target = document.querySelector('.card:has(h5 i.bi-graph-up) .card-body');
+            catCanvas.style.maxHeight = '280px';
+            const target = document.querySelector('.card:has(h6 i.bi-bar-chart-fill) .card-body');
             if (target) {
                 target.insertBefore(catCanvas, target.firstChild);
             }
             new Chart(catCanvas, {
                 type: 'bar',
                 data: { labels, datasets: [
-                    { label: 'Total', data: totals, backgroundColor: 'rgba(54,162,235,0.6)' },
-                    { label: 'Résolues', data: resolved, backgroundColor: 'rgba(75,192,192,0.7)' },
-                    { label: 'En cours', data: pending, backgroundColor: 'rgba(255,206,86,0.7)' }
+                    { label: 'Total', data: totals, backgroundColor: '#3b82f6', borderRadius: 6 },
+                    { label: 'Résolues', data: resolved, backgroundColor: '#14b8a6', borderRadius: 6 },
+                    { label: 'En cours', data: pending, backgroundColor: '#06b6d4', borderRadius: 6 }
                 ]},
                 options: {
                     responsive:true,
                     maintainAspectRatio:false,
-                    layout:{ padding:{ top:4, right:8, bottom:4, left:8 } },
-                    plugins:{ legend:{ position:'bottom' } },
+                    layout:{ padding:{ top:10, right:10, bottom:10, left:10 } },
+                    plugins:{ 
+                        legend:{ 
+                            position:'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15,
+                                font: { size: 11, weight: '500' }
+                            }
+                        } 
+                    },
                     scales:{
                         y:{
                             beginAtZero:true,
                             suggestedMax: maxCat,
-                            ticks:{ stepSize: stepCat }
+                            ticks:{ stepSize: stepCat, font: { size: 11 } },
+                            grid: { color: '#f3f4f6' }
                         },
-                        x:{ ticks:{ maxRotation:0 } }
+                        x:{ 
+                            ticks:{ maxRotation:0, font: { size: 11 } },
+                            grid: { display: false }
+                        }
                     }
                 }
             });
@@ -414,30 +431,43 @@ include '../../includes/head.php';
             const stepMgr = Math.max(1, Math.ceil(maxMgr / 5));
             const mgrCanvas = document.createElement('canvas');
             mgrCanvas.id = 'managerChart';
-            mgrCanvas.style.maxHeight = '240px';
-            const target2 = document.querySelector('.card:has(h5 i.bi-person-check-fill) .card-body');
+            mgrCanvas.style.maxHeight = '280px';
+            const target2 = document.querySelector('.card:has(h6 i.bi-people-fill) .card-body');
             if (target2) {
                 target2.insertBefore(mgrCanvas, target2.firstChild);
             }
             new Chart(mgrCanvas, {
                 type: 'bar',
                 data: { labels, datasets: [
-                    { label: 'Dossiers', data: handled, backgroundColor: 'rgba(54,162,235,0.6)' },
-                    { label: 'Résolus', data: resolvedMgr, backgroundColor: 'rgba(34,197,94,0.7)' }
+                    { label: 'Dossiers', data: handled, backgroundColor: '#3b82f6', borderRadius: 6 },
+                    { label: 'Résolus', data: resolvedMgr, backgroundColor: '#14b8a6', borderRadius: 6 }
                 ]},
                 options: {
                     indexAxis:'y',
                     responsive:true,
                     maintainAspectRatio:false,
-                    layout:{ padding:{ top:4, right:8, bottom:4, left:8 } },
-                    plugins:{ legend:{ position:'bottom' } },
+                    layout:{ padding:{ top:10, right:10, bottom:10, left:10 } },
+                    plugins:{ 
+                        legend:{ 
+                            position:'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15,
+                                font: { size: 11, weight: '500' }
+                            }
+                        } 
+                    },
                     scales:{
                         x:{
                             beginAtZero:true,
                             suggestedMax: maxMgr,
-                            ticks:{ stepSize: stepMgr }
+                            ticks:{ stepSize: stepMgr, font: { size: 11 } },
+                            grid: { color: '#f3f4f6' }
                         },
-                        y:{ ticks:{ autoSkip:false } }
+                        y:{ 
+                            ticks:{ autoSkip:false, font: { size: 11 } },
+                            grid: { display: false }
+                        }
                     }
                 }
             });

@@ -166,17 +166,400 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 include '../../includes/head.php';
 ?>
+<link rel="stylesheet" href="../../css/modern.css">
 
-<body class="bg-light">
+<style>
+    body {
+        background: linear-gradient(135deg, #cffafe 0%, #e0f2fe 50%, #e0e7ff 100%);
+        min-height: 100vh;
+    }
+    
+    .navbar-minimal {
+        background-color: #ffffff;
+        border-bottom: none;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-base);
+        animation: slideDown 0.5s ease-out;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .navbar-brand {
+        color: var(--gray-900) !important;
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+    
+    .btn-back {
+        color: var(--gray-700) !important;
+        border: 2px solid var(--gray-200);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        transition: all var(--transition-base);
+        background: white;
+        text-decoration: none;
+    }
+    
+    .btn-back:hover {
+        border-color: var(--primary-blue);
+        color: var(--primary-blue) !important;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .main-content-container {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: 2.5rem;
+        box-shadow: var(--shadow-lg);
+        margin-bottom: 2rem;
+        margin-top: 2rem;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .section-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 2px solid var(--gray-100);
+        animation: fadeIn 0.8s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .section-header h4 {
+        color: var(--gray-900);
+        font-weight: 700;
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .section-header i {
+        color: var(--primary-blue);
+        animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+    
+    .detail-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-xl);
+        padding: 2.5rem;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 2rem;
+        animation: fadeInUp 0.6s ease-out;
+        transition: var(--transition-base);
+    }
+    
+    .detail-card:hover {
+        box-shadow: var(--shadow-xl);
+        transform: translateY(-2px);
+    }
+    
+    .badge-status {
+        padding: 0.625rem 1.25rem;
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        font-size: 0.875rem;
+        animation: pulse 2s infinite;
+        white-space: nowrap;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
+    
+    .info-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--gray-500);
+        font-size: 0.875rem;
+        margin-right: 1.5rem;
+    }
+    
+    .info-meta i {
+        color: var(--primary-blue);
+    }
+    
+    .description-box {
+        background: linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, rgba(14, 165, 233, 0.05) 100%);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin: 2rem 0;
+        line-height: 1.8;
+        transition: var(--transition-base);
+    }
+    
+    .description-box:hover {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+    }
+    
+    .attachment-btn {
+        background: white;
+        border: 1px solid var(--gray-300);
+        padding: 0.75rem 1.25rem;
+        border-radius: var(--radius-md);
+        transition: all var(--transition-base);
+        color: var(--gray-700);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .attachment-btn:hover {
+        background: var(--gradient-blue);
+        color: white;
+        border-color: transparent;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .comment-item {
+        margin-bottom: 2rem;
+        animation: slideInLeft 0.6s ease-out backwards;
+    }
+    
+    .comment-item:nth-child(1) { animation-delay: 0.1s; }
+    .comment-item:nth-child(2) { animation-delay: 0.2s; }
+    .comment-item:nth-child(3) { animation-delay: 0.3s; }
+    .comment-item:nth-child(4) { animation-delay: 0.4s; }
+    .comment-item:nth-child(5) { animation-delay: 0.5s; }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .comment-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+        flex-shrink: 0;
+        transition: var(--transition-base);
+    }
+    
+    .comment-avatar:hover {
+        transform: scale(1.1) rotate(5deg);
+    }
+    
+    .comment-bubble {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        position: relative;
+        transition: var(--transition-base);
+        line-height: 1.7;
+    }
+    
+    .comment-bubble:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateX(4px);
+    }
+    
+    .comment-bubble::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 20px;
+        width: 0;
+        height: 0;
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+        border-right: 8px solid var(--gray-200);
+    }
+    
+    .role-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    .role-badge.gestionnaire {
+        background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
+        color: white;
+    }
+    
+    .role-badge.reclamant {
+        background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+        color: white;
+    }
+    
+    .comment-form textarea {
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        font-size: 0.938rem;
+        transition: all var(--transition-base);
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .comment-form textarea:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+        min-height: 140px;
+    }
+    
+    .btn-submit {
+        background: var(--gradient-blue);
+        color: white;
+        border: none;
+        padding: 0.875rem 2rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        transition: all var(--transition-base);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-xl);
+        color: white;
+    }
+    
+    .sidebar-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 1.5rem;
+        animation: fadeInLeft 0.6s ease-out;
+    }
+    
+    @keyframes fadeInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .section-title {
+        color: var(--gray-500);
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 1rem;
+    }
+    
+    .form-select, .form-control {
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+        transition: all var(--transition-base);
+        background-color: var(--gray-50);
+    }
+    
+    .form-select:focus, .form-control:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+        background-color: white;
+    }
+    
+    .btn-update {
+        background: var(--gradient-blue);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        transition: all var(--transition-base);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-update:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        color: white;
+    }
+    
+    .user-info-box {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, rgba(14, 165, 233, 0.05) 100%);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--gray-200);
+    }
+    
+    .user-avatar-large {
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius-full);
+        background: var(--gradient-blue);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+</style>
+
+<script src="../../js/main.js" defer></script>
+
+<body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <nav class="navbar navbar-minimal">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-person-workspace me-2"></i>Espace Gestionnaire</a>
-            <div class="ms-auto">
-                <a class="btn btn-outline-light btn-sm fw-bold" href="index.php">
-                    <i class="bi bi-arrow-left me-1"></i> Retour
-                </a>
-            </div>
+            <span class="navbar-brand">
+                <i class="bi bi-person-workspace"></i> Espace Gestionnaire
+            </span>
+            <a href="index.php" class="btn-back">
+                <i class="bi bi-arrow-left me-2"></i>Retour
+            </a>
         </div>
     </nav>
 
@@ -184,35 +567,31 @@ include '../../includes/head.php';
         <div class="row g-4">
             <!-- Sidebar Actions -->
             <div class="col-lg-3">
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white p-3 border-bottom">
-                        <h6 class="mb-0 fw-bold text-uppercase small">Actions</h6>
-                    </div>
-                    <div class="card-body p-4">
-                        <form method="POST" action="traitement.php?id=<?php echo $reclamation_id; ?>">
-                            <label class="form-label fw-bold small">Changer le statut</label>
-                            <select class="form-select mb-3" name="new_status">
-                                <option value="en_cours" <?php echo $reclamation['statut'] == 'en_cours' ? 'selected' : ''; ?>>En cours</option>
-                                <option value="attente_info" <?php echo $reclamation['statut'] == 'attente_info' ? 'selected' : ''; ?>>Attente d'info</option>
-                                <option value="traite" <?php echo $reclamation['statut'] == 'traite' ? 'selected' : ''; ?>>Traité</option>
-                                <option value="ferme" <?php echo $reclamation['statut'] == 'ferme' ? 'selected' : ''; ?>>Fermé</option>
-                            </select>
-                            <button type="submit" class="btn btn-primary w-100 fw-bold">Mettre à jour</button>
-                        </form>
-                    </div>
+                <div class="sidebar-card">
+                    <h6 class="section-title">Actions</h6>
+                    <form method="POST" action="traitement.php?id=<?php echo $reclamation_id; ?>">
+                        <label class="form-label fw-bold small mb-2">Changer le statut</label>
+                        <select class="form-select mb-3" name="new_status">
+                            <option value="en_cours" <?php echo $reclamation['statut'] == 'en_cours' ? 'selected' : ''; ?>>En cours</option>
+                            <option value="attente_info" <?php echo $reclamation['statut'] == 'attente_info' ? 'selected' : ''; ?>>Attente d'info</option>
+                            <option value="traite" <?php echo $reclamation['statut'] == 'traite' ? 'selected' : ''; ?>>Traité</option>
+                            <option value="ferme" <?php echo $reclamation['statut'] == 'ferme' ? 'selected' : ''; ?>>Fermé</option>
+                        </select>
+                        <button type="submit" class="btn-update w-100">
+                            <i class="bi bi-check-circle me-2"></i>Mettre à jour
+                        </button>
+                    </form>
                 </div>
 
-                <div class="card shadow-sm border-0 rounded-4">
-                    <div class="card-body p-4">
-                        <h6 class="fw-bold text-uppercase text-muted mb-3 small">Infos Réclamant</h6>
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle bg-light text-primary d-flex align-items-center justify-content-center fw-bold me-3" style="width: 40px; height: 40px;">
-                                <?php echo strtoupper(substr($reclamation['user_name'], 0, 1)); ?>
-                            </div>
-                            <div>
-                                <div class="fw-bold"><?php echo htmlspecialchars($reclamation['user_name']); ?></div>
-                                <div class="small text-muted"><?php echo htmlspecialchars($reclamation['user_email']); ?></div>
-                            </div>
+                <div class="sidebar-card">
+                    <h6 class="section-title">Infos Réclamant</h6>
+                    <div class="user-info-box">
+                        <div class="user-avatar-large">
+                            <?php echo strtoupper(substr($reclamation['user_name'], 0, 1)); ?>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-gray-900"><?php echo htmlspecialchars($reclamation['user_name']); ?></div>
+                            <div class="small text-muted"><?php echo htmlspecialchars($reclamation['user_email']); ?></div>
                         </div>
                     </div>
                 </div>
@@ -220,91 +599,107 @@ include '../../includes/head.php';
 
             <!-- Détails et Chat -->
             <div class="col-lg-9">
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold">
-                            Réclamation #<?php echo $reclamation['id']; ?> : <?php echo htmlspecialchars($reclamation['sujet']); ?>
-                        </h5>
-                        <span class="badge rounded-pill <?php echo get_status_badge($reclamation['statut']); ?> px-3 py-2">
+                <div class="main-content-container">
+                    <div class="section-header d-flex justify-content-between align-items-start">
+                        <div>
+                            <h4>
+                                <i class="bi bi-file-text me-2"></i>
+                                Réclamation #<?php echo $reclamation['id']; ?> : <?php echo htmlspecialchars($reclamation['sujet']); ?>
+                            </h4>
+                        </div>
+                        <span class="badge-status <?php echo get_status_badge($reclamation['statut']); ?>">
                             <?php echo get_status_label($reclamation['statut']); ?>
                         </span>
                     </div>
-                    <div class="card-body p-4">
-                        <div class="mb-4">
-                            <span class="badge bg-light text-dark border me-2"><?php echo htmlspecialchars($reclamation['categorie_nom']); ?></span>
-                            <span class="text-muted small"><i class="bi bi-clock me-1"></i> <?php echo format_date($reclamation['created_at']); ?></span>
+
+                    <div class="detail-card">
+                        <div class="d-flex flex-wrap gap-3 mb-3">
+                            <span class="info-meta">
+                                <i class="bi bi-folder"></i>
+                                <span><?php echo htmlspecialchars($reclamation['categorie_nom']); ?></span>
+                            </span>
+                            <span class="info-meta">
+                                <i class="bi bi-clock"></i>
+                                <span><?php echo format_date($reclamation['created_at']); ?></span>
+                            </span>
                         </div>
                         
-                        <div class="p-3 bg-light rounded-3 mb-4 border">
-                            <p class="mb-0" style="white-space: pre-line;"><?php echo htmlspecialchars($reclamation['description']); ?></p>
+                        <div class="description-box">
+                            <?php echo nl2br(htmlspecialchars($reclamation['description'])); ?>
                         </div>
 
                         <?php if (count($attachments) > 0): ?>
-                            <h6 class="fw-bold mb-3"><i class="bi bi-paperclip me-2"></i>Pièces jointes</h6>
-                            <div class="row g-2">
+                            <div class="section-header">
+                                <h5><i class="bi bi-paperclip me-2"></i>Pièces jointes</h5>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
                                 <?php foreach ($attachments as $att): ?>
-                                    <div class="col-auto">
-                                        <a href="../../<?php echo $att['chemin_acces']; ?>" download="<?php echo $att['nom_fichier']; ?>" class="btn btn-outline-secondary btn-sm">
-                                            <i class="bi bi-file-earmark-down me-1"></i> <?php echo $att['nom_fichier']; ?>
-                                        </a>
-                                    </div>
+                                    <a href="../../<?php echo $att['chemin_acces']; ?>" download="<?php echo $att['nom_fichier']; ?>" class="attachment-btn">
+                                        <i class="bi bi-file-earmark-arrow-down"></i>
+                                        <span><?php echo $att['nom_fichier']; ?></span>
+                                    </a>
                                 <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
                     </div>
-                </div>
 
-                <!-- Historique / Commentaires -->
-                <div class="card shadow-sm border-0 rounded-4">
-                    <div class="card-header bg-white p-4 border-bottom">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-chat-left-text me-2 text-primary"></i>Suivi du dossier</h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="timeline mb-4">
+                    <!-- Historique / Commentaires -->
+                    <div class="detail-card">
+                        <div class="section-header">
+                            <h5><i class="bi bi-chat-left-text me-2"></i>Suivi du dossier</h5>
+                        </div>
+
+                        <div class="comments-list mb-4">
                             <?php if (count($comments) > 0): ?>
                                 <?php foreach ($comments as $comment): ?>
-                                    <div class="d-flex mb-4">
-                                        <div class="flex-shrink-0">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold <?php echo $comment['user_role'] == 'reclamant' ? 'bg-secondary' : 'bg-primary'; ?>" style="width: 40px; height: 40px;">
+                                    <div class="comment-item">
+                                        <div class="d-flex gap-3">
+                                            <div class="comment-avatar <?php echo $comment['user_role'] == 'reclamant' ? 'bg-secondary' : 'bg-primary'; ?>">
                                                 <?php echo strtoupper(substr($comment['user_name'], 0, 1)); ?>
                                             </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <div class="bg-light p-3 rounded-3 <?php echo $comment['user_role'] != 'reclamant' ? 'border-start border-4 border-primary' : ''; ?>">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <h6 class="fw-bold mb-0">
-                                                        <?php echo htmlspecialchars($comment['user_name']); ?>
-                                                        <span class="badge bg-secondary ms-2" style="font-size: 0.7em;"><?php echo $comment['user_role']; ?></span>
-                                                    </h6>
-                                                    <small class="text-muted"><?php echo format_date($comment['created_at']); ?></small>
+                                            <div class="flex-grow-1">
+                                                <div class="comment-bubble">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <strong><?php echo htmlspecialchars($comment['user_name']); ?></strong>
+                                                            <span class="role-badge <?php echo $comment['user_role']; ?>">
+                                                                <?php echo $comment['user_role']; ?>
+                                                            </span>
+                                                        </div>
+                                                        <small class="text-muted"><?php echo format_date($comment['created_at']); ?></small>
+                                                    </div>
+                                                    <p class="mb-0">
+                                                        <?php
+                                                            $raw = htmlspecialchars_decode($comment['comment'] ?? '');
+                                                            $allowed_tags = '<b><strong><i><em><u><br><a>';
+                                                            $safe = strip_tags($raw, $allowed_tags);
+                                                            echo nl2br($safe);
+                                                        ?>
+                                                    </p>
                                                 </div>
-                                                <p class="mb-0 small">
-                                                    <?php
-                                                        // Décoder les entités si le contenu a été stocké encodé,
-                                                        // autoriser un petit ensemble de balises sûres, puis afficher les sauts de ligne.
-                                                        $raw = htmlspecialchars_decode($comment['comment'] ?? '');
-                                                        $allowed_tags = '<b><strong><i><em><u><br><a>';
-                                                        $safe = strip_tags($raw, $allowed_tags);
-                                                        echo nl2br($safe);
-                                                    ?>
-                                                </p>
                                             </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <p class="text-center text-muted">Aucun historique.</p>
+                                <p class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                                    Aucun historique disponible
+                                </p>
                             <?php endif; ?>
                         </div>
 
-                        <hr>
-                        <form method="POST" action="traitement.php?id=<?php echo $reclamation_id; ?>">
+                        <hr class="my-4">
+
+                        <form method="POST" action="traitement.php?id=<?php echo $reclamation_id; ?>" class="comment-form">
                             <div class="mb-3">
-                                <label for="comment" class="form-label fw-bold">Ajouter une note ou une réponse</label>
-                                <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="Écrire un message..." required></textarea>
+                                <label for="comment" class="form-label fw-bold">
+                                    <i class="bi bi-pencil-square me-2"></i>Ajouter une note ou une réponse
+                                </label>
+                                <textarea class="form-control" id="comment" name="comment" rows="4" placeholder="Écrire un message..." required></textarea>
                             </div>
                             <div class="text-end">
-                                <button type="submit" class="btn btn-primary fw-bold">
+                                <button type="submit" class="btn-submit">
                                     <i class="bi bi-send-fill me-2"></i>Envoyer
                                 </button>
                             </div>

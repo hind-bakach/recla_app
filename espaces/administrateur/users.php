@@ -164,41 +164,10 @@ include '../../includes/head.php';
 ?>
 
 <body class="bg-light">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-shield-lock-fill me-2"></i>Espace Administrateur</a>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">Admin: <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
-                <a class="btn btn-outline-light btn-sm fw-bold" href="../../frontend/deconnexion.php">
-                    <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php include '../../includes/navbar_admin.php'; ?>
+    <?php include '../../includes/sidebar_admin.php'; ?>
 
-    <div class="container-fluid py-4">
-        <div class="row g-4">
-            <!-- Sidebar Menu -->
-            <div class="col-lg-2">
-                <div class="list-group shadow-sm rounded-4 border-0">
-                    <a href="index.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-speedometer2 me-2"></i>Tableau de Bord
-                    </a>
-                    <a href="users.php" class="list-group-item list-group-item-action active fw-bold" aria-current="true">
-                        <i class="bi bi-people-fill me-2"></i>Utilisateurs
-                    </a>
-                    <a href="categories.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-tags-fill me-2"></i>Catégories
-                    </a>
-                    <a href="reclamations.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-inbox-fill me-2"></i>Réclamations
-                    </a>
-                </div>
-            </div>
-
-            <!-- Contenu Principal -->
-            <div class="col-lg-10">
+    <div class="container-fluid bg-light" style="padding: 2rem;">
                 
                 <?php if ($error): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -214,37 +183,37 @@ include '../../includes/head.php';
                     </div>
                 <?php endif; ?>
 
-                <div class="row g-4">
+                <div class="row g-3">
                     <!-- Formulaire Ajout -->
                     <div class="col-md-4">
-                        <div class="card shadow-sm border-0 rounded-4">
-                            <div class="card-header bg-white p-3 border-bottom">
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill me-2 text-primary"></i>Ajouter un utilisateur</h5>
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white p-3 border-0" style="background-color: #bfc9cf8c !important;">
+                                <h6 class="mb-0 fw-bold text-uppercase" style="font-size: 0.90rem; letter-spacing: 0.5px;"><i class="bi bi-person-plus-fill me-2 text-primary"></i>Ajouter un utilisateur</h6>
                             </div>
                             <div class="card-body p-4">
                                 <form method="POST" action="users.php">
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small">Nom complet</label>
-                                        <input type="text" class="form-control" name="nom" required>
+                                        <label class="form-label fw-bold small"><i class="bi bi-person-fill text-primary me-1"></i>Nom complet</label>
+                                        <input type="text" class="form-control" name="nom" placeholder="Entrez le nom complet" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small">Email</label>
-                                        <input type="email" class="form-control" name="email" required>
+                                        <label class="form-label fw-bold small"><i class="bi bi-envelope-fill text-primary me-1"></i>Email</label>
+                                        <input type="email" class="form-control" name="email" placeholder="exemple@email.com" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small">Mot de passe</label>
-                                        <input type="password" class="form-control" name="password" required>
+                                        <label class="form-label fw-bold small"><i class="bi bi-lock-fill text-primary me-1"></i>Mot de passe</label>
+                                        <input type="password" class="form-control" name="password" placeholder="Mot de passe sécurisé" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small">Rôle</label>
+                                        <label class="form-label fw-bold small"><i class="bi bi-shield-fill-check text-primary me-1"></i>Rôle</label>
                                         <select class="form-select" name="role" required>
-                                            <option value="reclamant">Réclamant</option>
-                                            <option value="gestionnaire">Gestionnaire</option>
-                                            <option value="administrateur">Administrateur</option>
+                                            <option value="reclamant">👤 Réclamant</option>
+                                            <option value="gestionnaire">💼 Gestionnaire</option>
+                                            <option value="administrateur">🔑 Administrateur</option>
                                         </select>
                                     </div>
                                     <div class="d-grid">
-                                        <button type="submit" class="btn btn-primary fw-bold">Ajouter</button>
+                                        <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-plus-circle me-2"></i>Ajouter l'utilisateur</button>
                                     </div>
                                 </form>
                             </div>
@@ -253,10 +222,10 @@ include '../../includes/head.php';
 
                     <!-- Liste Utilisateurs -->
                     <div class="col-md-8">
-                        <div class="card shadow-sm border-0 rounded-4">
-                            <div class="card-header bg-white p-3 border-bottom">
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white p-3 border-0" style="background-color: #bfc9cf8c !important;">
                                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
-                                    <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des utilisateurs</h5>
+                                    <h6 class="mb-0 fw-bold text-uppercase" style="font-size: 0.90rem; letter-spacing: 0.5px;"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des utilisateurs</h6>
                                     <form class="d-flex gap-2" method="GET" action="users.php">
                                         <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" class="form-control form-control-sm" placeholder="Recherche nom/email">
                                         <select name="role_filter" class="form-select form-select-sm" style="max-width:140px;">
@@ -321,6 +290,7 @@ include '../../includes/head.php';
     </div>
 
     <?php include '../../includes/footer.php'; ?>
+    <?php include '../../includes/admin_styles.php'; ?>
 </body>
 </html>
 
@@ -375,6 +345,9 @@ include '../../includes/head.php';
     </div>
 </div>
 
+<?php include '../../includes/footer.php'; ?>
+
+<script src="../../js/admin-animations.js"></script>
 <script>
     function loadUserData(userId, userData) {
         // userData est un JSON object passed inline

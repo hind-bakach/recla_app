@@ -118,43 +118,10 @@ include '../../includes/head.php';
 ?>
 
 <body class="bg-light">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-shield-lock-fill me-2"></i>Espace Administrateur</a>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">Admin: <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
-                <a class="btn btn-outline-light btn-sm fw-bold" href="../../frontend/deconnexion.php">
-                    <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php include '../../includes/navbar_admin.php'; ?>
+    <?php include '../../includes/sidebar_admin.php'; ?>
 
-    <div class="container-fluid py-4">
-        <div class="row g-4">
-            <!-- Sidebar Menu -->
-            <div class="col-lg-2">
-                <div class="list-group shadow-sm rounded-4 border-0">
-                    <a href="index.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-speedometer2 me-2"></i>Tableau de Bord
-                    </a>
-                    <a href="users.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-people-fill me-2"></i>Utilisateurs
-                    </a>
-                    <a href="categories.php" class="list-group-item list-group-item-action active fw-bold" aria-current="true">
-                        <i class="bi bi-tags-fill me-2"></i>Catégories
-                    </a>
-                    <a href="reclamations.php" class="list-group-item list-group-item-action fw-bold">
-                        <i class="bi bi-inbox-fill me-2"></i>Réclamations
-                    </a>
-                    
-                    
-                </div>
-            </div>
-
-            <!-- Contenu Principal -->
-            <div class="col-lg-10">
+    <div class="container-fluid bg-light" style="padding: 2rem;">
                 
                 <?php if ($error && empty($success)): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -170,37 +137,37 @@ include '../../includes/head.php';
                     </div>
                 <?php endif; ?>
 
-                <div class="row g-4">
+                <div class="row g-3">
                     <!-- Formulaire Ajout -->
                     <div class="col-md-4">
-                        <div class="card shadow-sm border-0 rounded-4">
-                            <div class="card-header bg-white p-3 border-bottom">
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-plus-circle-fill me-2 text-primary"></i>Ajouter une catégorie</h5>
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white p-3 border-0" style="background-color: #bfc9cf8c !important;">
+                                <h6 class="mb-0 fw-bold text-uppercase" style="font-size: 0.90rem; letter-spacing: 0.5px;"><i class="bi bi-plus-circle-fill me-2 text-primary"></i>Ajouter une catégorie</h6>
                             </div>
                             <div class="card-body p-4">
                                 <form method="POST" action="categories.php">
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small">Nom de la catégorie</label>
-                                        <input type="text" class="form-control" name="nom_categorie" placeholder="Ex: Technique" required>
+                                        <label class="form-label fw-bold small"><i class="bi bi-tag-fill text-primary me-1"></i>Nom de la catégorie</label>
+                                        <input type="text" class="form-control" name="nom_categorie" placeholder="Ex: Technique, Service client..." required>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small">Responsable</label>
+                                        <label class="form-label fw-bold small"><i class="bi bi-person-badge-fill text-primary me-1"></i>Responsable</label>
                                         <input type="text" class="form-control" name="responsable" placeholder="Agent ou service responsable">
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small">Délai de traitement (jours)</label>
+                                        <label class="form-label fw-bold small"><i class="bi bi-clock-fill text-primary me-1"></i>Délai de traitement (jours)</label>
                                         <input type="number" class="form-control" name="delai_traitement_jours" min="0" placeholder="Ex: 5">
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold small">Priorité par défaut</label>
+                                        <label class="form-label fw-bold small"><i class="bi bi-star-fill text-primary me-1"></i>Priorité par défaut</label>
                                         <select class="form-select" name="priorite_defaut">
-                                            <option value="Basse">Basse</option>
-                                            <option value="Normale" selected>Normale</option>
-                                            <option value="Haute">Haute</option>
+                                            <option value="Basse">⬇️ Basse</option>
+                                            <option value="Normale" selected>➡️ Normale</option>
+                                            <option value="Haute">⬆️ Haute</option>
                                         </select>
                                     </div>
                                     <div class="d-grid">
-                                        <button type="submit" class="btn btn-primary fw-bold">Ajouter</button>
+                                        <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-plus-circle me-2"></i>Ajouter la catégorie</button>
                                     </div>
                                 </form>
                             </div>
@@ -209,10 +176,10 @@ include '../../includes/head.php';
 
                     <!-- Liste Catégories -->
                     <div class="col-md-8">
-                        <div class="card shadow-sm border-0 rounded-4">
-                            <div class="card-header bg-white p-3 border-bottom">
+                        <div class="card shadow-sm border-0 rounded-3">
+                            <div class="card-header bg-white p-3 border-0" style="background-color: #bfc9cf8c !important;">
                                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
-                                    <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des catégories</h5>
+                                    <h6 class="mb-0 fw-bold text-uppercase" style="font-size: 0.90rem; letter-spacing: 0.5px;"><i class="bi bi-list-ul me-2 text-primary"></i>Liste des catégories</h6>
                                     <form class="d-flex gap-2" method="GET" action="categories.php">
                                         <input type="text" name="search_cat" value="<?php echo htmlspecialchars($catSearch); ?>" class="form-control form-control-sm" placeholder="Recherche nom/responsable">
                                         <select name="priority_filter" class="form-select form-select-sm" style="max-width:140px;">
@@ -282,6 +249,7 @@ include '../../includes/head.php';
     </div>
 
     <?php include '../../includes/footer.php'; ?>
+    <?php include '../../includes/admin_styles.php'; ?>
 </body>
 </html>
 
@@ -328,6 +296,7 @@ include '../../includes/head.php';
     </div>
 </div>
 
+<script src="../../js/admin-animations.js"></script>
 <script>
 function loadCategoryData(id, nom, responsable, delai, priorite) {
     document.getElementById('edit_id').value = id || '';

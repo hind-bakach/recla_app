@@ -103,15 +103,401 @@ $stats = [ 'total' => $countTotal, 'en_cours' => $countEnCours, 'traite' => $cou
 
 include '../../includes/head.php';
 ?>
+<link rel="stylesheet" href="../../css/modern.css">
 
-<body class="bg-light">
+<style>
+    body {
+        background: linear-gradient(135deg, #cffafe 0%, #e0f2fe 50%, #e0e7ff 100%);
+        min-height: 100vh;
+    }
+    
+    .navbar-minimal {
+        background-color: #ffffff;
+        border-bottom: none;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-base);
+        animation: slideDown 0.5s ease-out;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .navbar-brand {
+        color: var(--gray-900) !important;
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+    
+    .user-info {
+        color: var(--gray-700);
+        font-size: 0.938rem;
+    }
+    
+    .btn-disconnect {
+        color: var(--gray-700) !important;
+        border: 2px solid var(--gray-200);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        transition: all var(--transition-base);
+        background: white;
+    }
+    
+    .btn-disconnect:hover {
+        border-color: var(--primary-blue);
+        color: var(--primary-blue) !important;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .main-content-container {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: 2.5rem;
+        box-shadow: var(--shadow-lg);
+        margin-bottom: 2rem;
+        margin-top: 2rem;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .sidebar-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 1.5rem;
+        animation: fadeInLeft 0.6s ease-out;
+    }
+    
+    @keyframes fadeInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .section-title {
+        color: var(--gray-500);
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+    
+    .stat-label {
+        color: var(--gray-700);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .stat-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        font-size: 0.813rem;
+        white-space: nowrap;
+    }
+    
+    .stat-badge.primary {
+        background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
+        color: white;
+    }
+    
+    .stat-badge.warning {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: white;
+    }
+    
+    .stat-badge.success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+    
+    .filter-label {
+        color: var(--gray-700);
+        font-weight: 600;
+        font-size: 0.813rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+        transition: all var(--transition-base);
+        background-color: var(--gray-50);
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+        background-color: white;
+    }
+    
+    .btn-reset {
+        background-color: white;
+        color: var(--gray-700);
+        border: 2px solid var(--gray-200);
+        padding: 0.625rem 1rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        transition: all var(--transition-base);
+        font-size: 0.875rem;
+        white-space: nowrap;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+    }
+    
+    .btn-reset:hover {
+        background-color: var(--gray-100);
+        border-color: var(--gray-400);
+        transform: translateY(-2px);
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+        animation: fadeIn 0.8s ease-out 0.2s both;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .main-title {
+        color: var(--gray-900);
+        font-weight: 700;
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .dossier-count {
+        color: var(--gray-500);
+        font-size: 0.938rem;
+        font-weight: 500;
+    }
+    
+    .table-container {
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table thead {
+        background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    }
+    
+    .table thead th {
+        color: var(--gray-700);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--gray-200);
+        padding: 1rem;
+    }
+    
+    .table tbody tr {
+        transition: all var(--transition-base);
+        cursor: pointer;
+    }
+    
+    .table tbody tr:hover {
+        background: linear-gradient(135deg, rgba(20, 184, 166, 0.03) 0%, rgba(14, 165, 233, 0.03) 100%);
+        transform: translateX(4px);
+    }
+    
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        color: var(--gray-700);
+        font-size: 0.875rem;
+    }
+    
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-full);
+        background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+        margin-right: 0.75rem;
+    }
+    
+    .category-badge {
+        background-color: var(--gray-100);
+        color: var(--gray-700);
+        padding: 0.375rem 0.875rem;
+        border-radius: var(--radius-full);
+        font-size: 0.813rem;
+        font-weight: 500;
+        border: 1px solid var(--gray-200);
+        white-space: nowrap;
+    }
+    
+    .status-badge {
+        padding: 0.375rem 0.875rem;
+        border-radius: var(--radius-full);
+        font-size: 0.813rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    .status-badge.en-cours {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+    }
+    
+    .status-badge.traite {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        color: #065f46;
+    }
+    
+    .status-badge.ferme {
+        background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+        color: #374151;
+    }
+    
+    .status-badge.attente {
+        background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+        color: #7f1d1d;
+    }
+    
+    .btn-action {
+        background: var(--gradient-blue);
+        color: white;
+        border: none;
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        transition: all var(--transition-base);
+        font-size: 0.813rem;
+        box-shadow: var(--shadow-sm);
+        white-space: nowrap;
+        text-decoration: none;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        color: white;
+    }
+    
+    .empty-state {
+        padding: 4rem 2rem;
+        text-align: center;
+        color: var(--gray-400);
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    .empty-state small {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.813rem;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    .btn-action i {
+        font-size: 0.875rem;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .status-indicator.urgent {
+        background-color: #ef4444;
+    }
+    
+    .status-indicator.normal {
+        background-color: #14b8a6;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+</style>
+
+<script src="../../js/main.js" defer></script>
+
+<body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <nav class="navbar navbar-minimal">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-person-workspace me-2"></i>Espace Gestionnaire</a>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">Bonjour, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
-                <a class="btn btn-outline-light btn-sm fw-bold" href="../../frontend/deconnexion.php">
+            <span class="navbar-brand">
+                <i class="bi bi-person-workspace"></i> Espace Gestionnaire
+            </span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="user-info">Bonjour, <strong><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'manel el moidni'); ?></strong></span>
+                <a class="btn-disconnect" href="../../frontend/deconnexion.php">
                     <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
                 </a>
             </div>
@@ -119,133 +505,158 @@ include '../../includes/head.php';
     </nav>
 
     <div class="container-fluid py-4">
+    <div class="container-fluid py-4">
         <div class="row g-4">
             <!-- Sidebar / Filtres -->
-            <div class="col-lg-2">
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-body p-3">
-                        <h6 class="fw-bold text-uppercase text-muted mb-3 small">Statistiques</h6>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Total</span>
-                            <span class="badge bg-primary rounded-pill"><?php echo $stats['total']; ?></span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>En cours</span>
-                            <span class="badge bg-warning text-dark rounded-pill"><?php echo $stats['en_cours']; ?></span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Traités</span>
-                            <span class="badge bg-success rounded-pill"><?php echo $stats['traite']; ?></span>
-                        </div>
+            <div class="col-lg-3 col-xl-2">
+                <div class="sidebar-card">
+                    <h6 class="section-title">Statistiques</h6>
+                    <div class="stat-item">
+                        <span class="stat-label"><i class="bi bi-files me-2"></i>TOTAL</span>
+                        <span class="stat-badge primary"><?php echo $stats['total']; ?></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label"><i class="bi bi-hourglass-split me-2"></i>EN COURS</span>
+                        <span class="stat-badge warning"><?php echo $stats['en_cours']; ?></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label"><i class="bi bi-check-circle me-2"></i>TRAITÉS</span>
+                        <span class="stat-badge success"><?php echo $stats['traite']; ?></span>
                     </div>
                 </div>
 
-                <div class="card shadow-sm border-0 rounded-4">
-                    <div class="card-body p-3">
-                        <h6 class="fw-bold text-uppercase text-muted mb-3 small">Filtres</h6>
-                        <form method="GET" action="index.php">
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Statut</label>
-                                <select class="form-select form-select-sm" name="status" onchange="this.form.submit()">
-                                    <option value="">Tous</option>
-                                    <?php 
-                                    // Construire options à partir des valeurs présentes
-                                    $options = [];
-                                    foreach ($presentStatuses as $s) {
-                                        $label = get_status_label($s);
-                                        $options[] = ['value'=>$s,'label'=>$label];
-                                    }
-                                    // Si aucune donnée, proposer jeu par défaut compatible
-                                    if (empty($options)) {
-                                        $options = [
-                                            ['value'=>'en_cours','label'=>get_status_label('en_cours')],
-                                            ['value'=>'traite','label'=>get_status_label('traite')],
-                                            ['value'=>'attente_info','label'=>get_status_label('attente_info')],
-                                            ['value'=>'ferme','label'=>get_status_label('ferme')],
-                                        ];
-                                    }
-                                    foreach ($options as $opt) {
-                                        echo '<option value="'.htmlspecialchars($opt['value']).'" '.($status_filter==$opt['value']?'selected':'').'>'.htmlspecialchars($opt['label']).'</option>';
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Réclamant</label>
-                                <input type="text" class="form-control form-control-sm" name="user" value="<?php echo htmlspecialchars($user_filter); ?>" placeholder="Nom">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Date</label>
-                                <input type="date" class="form-control form-control-sm" name="date" value="<?php echo $date_filter; ?>" onchange="this.form.submit()">
-                            </div>
-                            <div class="d-grid">
-                                <a href="index.php" class="btn btn-light btn-sm border">Réinitialiser</a>
-                            </div>
-                        </form>
-                    </div>
+                <div class="sidebar-card">
+                    <h6 class="section-title">Filtres</h6>
+                    <form method="GET" action="index.php">
+                        <div class="mb-3">
+                            <label class="filter-label">Statut</label>
+                            <select class="form-select" name="status" onchange="this.form.submit()">
+                                <option value="">Tous</option>
+                                <?php 
+                                // Construire options à partir des valeurs présentes
+                                $options = [];
+                                foreach ($presentStatuses as $s) {
+                                    $label = get_status_label($s);
+                                    $options[] = ['value'=>$s,'label'=>$label];
+                                }
+                                // Si aucune donnée, proposer jeu par défaut compatible
+                                if (empty($options)) {
+                                    $options = [
+                                        ['value'=>'en_cours','label'=>get_status_label('en_cours')],
+                                        ['value'=>'traite','label'=>get_status_label('traite')],
+                                        ['value'=>'attente_info','label'=>get_status_label('attente_info')],
+                                        ['value'=>'ferme','label'=>get_status_label('ferme')],
+                                    ];
+                                }
+                                foreach ($options as $opt) {
+                                    echo '<option value="'.htmlspecialchars($opt['value']).'" '.($status_filter==$opt['value']?'selected':'').'>'.htmlspecialchars($opt['label']).'</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="filter-label">Réclamant</label>
+                            <input type="text" class="form-control" name="user" value="<?php echo htmlspecialchars($user_filter); ?>" placeholder="Nom">
+                        </div>
+                        <div class="mb-3">
+                            <label class="filter-label">Date</label>
+                            <input type="date" class="form-control" name="date" value="<?php echo $date_filter; ?>" onchange="this.form.submit()">
+                        </div>
+                        <button type="submit" class="btn-reset w-100 mb-2">
+                            <i class="bi bi-search me-2"></i>Filtrer
+                        </button>
+                        <a href="index.php" class="btn-reset w-100">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Réinitialiser
+                        </a>
+                    </form>
                 </div>
             </div>
 
             <!-- Liste des réclamations -->
-            <div class="col-lg-10">
-                <div class="card shadow-sm border-0 rounded-4">
-                    <div class="card-header bg-white p-3 border-bottom d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-inbox-fill me-2 text-primary"></i>Réclamations Reçues</h5>
-                        <span class="badge bg-light text-dark border"><?php echo count($claims); ?> dossiers</span>
+            <div class="col-lg-9 col-xl-10">
+                <div class="main-content-container">
+                    <div class="page-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="section-title mb-1">ESPACE GESTIONNAIRE</p>
+                            <h1 class="main-title">Réclamations Reçues</h1>
+                            <p class="text-muted" style="font-size: 0.875rem; margin-top: 0.5rem;">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Traitez et suivez les réclamations assignées à votre service
+                            </p>
+                        </div>
+                        <div class="dossier-count">
+                            <strong><?php echo count($claims); ?></strong> dossiers
+                        </div>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light text-muted text-uppercase small">
-                                    <tr>
-                                        <th class="ps-4 py-3">ID</th>
-                                        <th class="py-3">Réclamant</th>
-                                        <th class="py-3">Sujet</th>
-                                        <th class="py-3">Catégorie</th>
-                                        <th class="py-3">Date</th>
-                                        <th class="py-3">Statut</th>
-                                        <th class="py-3 text-end pe-4">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (count($claims) > 0): ?>
-                                        <?php foreach ($claims as $claim): ?>
-                                            <tr>
-                                                <td class="ps-4 fw-bold">#<?php echo $claim['id']; ?></td>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="rounded-circle bg-light text-primary d-flex align-items-center justify-content-center fw-bold me-2" style="width: 30px; height: 30px;">
-                                                            <?php echo strtoupper(substr($claim['user_name'], 0, 1)); ?>
-                                                        </div>
-                                                        <?php echo htmlspecialchars($claim['user_name']); ?>
+
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Réclamant</th>
+                                    <th>Sujet</th>
+                                    <th>Catégorie</th>
+                                    <th>Date</th>
+                                    <th>Statut</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (count($claims) > 0): ?>
+                                    <?php foreach ($claims as $claim): ?>
+                                        <tr onclick="window.location.href='traitement.php?id=<?php echo $claim['id']; ?>'">
+                                            <td class="fw-bold text-primary">#<?php echo $claim['id']; ?></td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="user-avatar">
+                                                        <?php echo strtoupper(substr($claim['user_name'], 0, 1)); ?>
                                                     </div>
-                                                </td>
-                                                <td><?php echo htmlspecialchars($claim['sujet']); ?></td>
-                                                <td><span class="badge bg-light text-dark border"><?php echo htmlspecialchars($claim['category_nom']); ?></span></td>
-                                                <td><?php echo format_date($claim['created_at']); ?></td>
-                                                <td>
-                                                    <span class="badge rounded-pill <?php echo get_status_badge($claim['statut']); ?>">
-                                                        <?php echo get_status_label($claim['statut']); ?>
-                                                    </span>
-                                                </td>
-                                                <td class="text-end pe-4">
-                                                    <a href="traitement.php?id=<?php echo $claim['id']; ?>" class="btn btn-sm btn-primary fw-bold">
-                                                        Traiter
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="7" class="text-center py-5 text-muted">
-                                                <i class="bi bi-check2-circle fs-1 d-block mb-3"></i>
-                                                Aucune réclamation à traiter.
+                                                    <span><?php echo htmlspecialchars($claim['user_name']); ?></span>
+                                                </div>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($claim['sujet']); ?></td>
+                                            <td>
+                                                <span class="category-badge">
+                                                    <?php echo htmlspecialchars($claim['category_nom']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo format_date($claim['created_at']); ?></td>
+                                            <td>
+                                                <?php 
+                                                $statusClass = 'en-cours';
+                                                if (in_array($claim['statut'], ['traite','traité','resolu','résolu'])) {
+                                                    $statusClass = 'traite';
+                                                } elseif (in_array($claim['statut'], ['ferme','fermé'])) {
+                                                    $statusClass = 'ferme';
+                                                } elseif (in_array($claim['statut'], ['attente_info','en_attente'])) {
+                                                    $statusClass = 'attente';
+                                                }
+                                                ?>
+                                                <span class="status-badge <?php echo $statusClass; ?>">
+                                                    <?php echo get_status_label($claim['statut']); ?>
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="traitement.php?id=<?php echo $claim['id']; ?>" class="btn-action" onclick="event.stopPropagation()">
+                                                    <i class="bi bi-pencil-square me-1"></i>Traiter
+                                                </a>
                                             </td>
                                         </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="7">
+                                            <div class="empty-state">
+                                                <i class="bi bi-inbox"></i>
+                                                <p class="mb-0">Aucune réclamation en attente de traitement</p>
+                                                <small class="text-muted">Les nouvelles réclamations apparaîtront ici</small>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
