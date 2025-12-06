@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - Gestion des Réclamations</title>
+    <title>Connexion - Resolve</title>
     <link rel="stylesheet" href="../css/bootstrap.min.css">
     <link rel="stylesheet" href="../css/modern.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -293,6 +293,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--primary-blue-dark);
         }
         
+        .forgot-password-link {
+            color: var(--gray-600);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .forgot-password-link:hover {
+            color: var(--primary-blue);
+        }
+        
         .back-link {
             color: var(--gray-600);
             text-decoration: none;
@@ -411,6 +425,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn-login">
                 Se connecter
             </button>
+            
+            <div class="text-center mt-3">
+                <a href="mot-de-passe-oublie.php" class="forgot-password-link">
+                    <i class="bi bi-question-circle me-1"></i>Mot de passe oublié ?
+                </a>
+            </div>
         </form>
 
         <div class="auth-links">

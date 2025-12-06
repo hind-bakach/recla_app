@@ -6,7 +6,7 @@ require_once '../includes/config.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Réclamations - Plateforme Intelligente</title>
+    <title>Resolve - Plateforme Intelligente de Gestion des Réclamations</title>
     <link rel="stylesheet" href="../css/bootstrap.min.css">
     <link rel="stylesheet" href="../css/modern.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -20,8 +20,8 @@ require_once '../includes/config.php';
     <nav class="navbar-modern" id="mainNav">
         <div class="navbar-container">
             <a href="index.php" class="navbar-logo">
-                <i class="bi bi-chat-square-dots-fill" style="color: #14b8a6;"></i>
-                <span>Gestion des <span class="text-gradient">Réclamations</span></span>
+                <i class="bi bi-check-circle-fill" style="color: #14b8a6;"></i>
+                <span class="text-gradient">Resolve</span>
             </a>
             
             <ul class="navbar-menu">
@@ -218,8 +218,8 @@ require_once '../includes/config.php';
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
                 <div>
                     <h4 style="color: white; font-weight: 700; margin-bottom: 1rem;">
-                        <i class="bi bi-chat-square-dots-fill" style="color: #2563eb;"></i>
-                        Gestion des Réclamations
+                        <i class="bi bi-check-circle-fill" style="color: #2563eb;"></i>
+                        Resolve
                     </h4>
                     <p>Plateforme intelligente de gestion et traçabilité des réclamations pour organisations modernes.</p>
                 </div>
@@ -240,7 +240,7 @@ require_once '../includes/config.php';
                 </div>
             </div>
             <div style="border-top: 1px solid var(--gray-800); padding-top: 1.5rem; text-align: center;">
-                <p style="margin: 0; font-size: 0.875rem;">© <?php echo date('Y'); ?> Gestion des Réclamations. Tous droits réservés.</p>
+                <p style="margin: 0; font-size: 0.875rem;">© <?php echo date('Y'); ?> Resolve. Tous droits réservés.</p>
             </div>
         </div>
     </footer>
