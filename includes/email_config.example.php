@@ -1,47 +1,29 @@
 <?php
 /**
- * Configuration Email pour l'envoi de mails
- * Utilise les variables d'environnement du fichier .env
+ * EXEMPLE DE CONFIGURATION EMAIL
+ * 
+ * INSTRUCTIONS:
+ * 1. Copiez ce fichier en 'email_config.php' dans le même dossier
+ * 2. Remplacez les valeurs par vos vraies credentials
+ * 3. Ne committez JAMAIS le fichier email_config.php dans Git
  */
 
 // Charger PHPMailer
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// Charger les variables d'environnement depuis .env
-function loadEnv($path) {
-    if (!file_exists($path)) {
-        die("Erreur: Le fichier .env est introuvable. Copiez .env.example en .env et configurez vos credentials.");
-    }
-    
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        // Ignorer les commentaires
-        if (strpos(trim($line), '#') === 0) {
-            continue;
-        }
-        
-        // Parser la ligne
-        list($name, $value) = explode('=', $line, 2);
-        $name = trim($name);
-        $value = trim($value);
-        
-        // Définir la variable si elle n'existe pas déjà
-        if (!defined($name)) {
-            define($name, $value);
-        }
-    }
-}
+// Méthode d'envoi: 'php_mail' (simple) ou 'smtp' (recommandé)
+define('EMAIL_METHOD', 'smtp');
 
-// Charger le fichier .env
-loadEnv(__DIR__ . '/../.env');
+// Configuration générale
+define('EMAIL_FROM', 'votre-email@gmail.com');
+define('EMAIL_FROM_NAME', 'Resolve');
 
-// Vérifier que les variables requises sont définies
-$required_vars = ['EMAIL_METHOD', 'EMAIL_FROM', 'EMAIL_FROM_NAME', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD', 'SMTP_SECURE'];
-foreach ($required_vars as $var) {
-    if (!defined($var)) {
-        die("Erreur: La variable $var n'est pas définie dans le fichier .env");
-    }
-}
+// Configuration SMTP (si EMAIL_METHOD = 'smtp')
+define('SMTP_HOST', 'smtp.gmail.com');        // Ex: smtp.gmail.com, smtp.office365.com
+define('SMTP_PORT', 587);                      // 587 (TLS) ou 465 (SSL)
+define('SMTP_USERNAME', 'votre-email@gmail.com');
+define('SMTP_PASSWORD', 'votre-mot-de-passe-application');  // Pour Gmail: utilisez un mot de passe d'application
+define('SMTP_SECURE', 'tls');                  // 'tls' ou 'ssl'
 
 /**
  * Fonction pour envoyer un email de réinitialisation
@@ -156,15 +138,6 @@ function send_email_smtp($to, $subject, $html_message, $text_message) {
         $mail->SMTPSecure = SMTP_SECURE;
         $mail->Port       = SMTP_PORT;
         $mail->CharSet    = 'UTF-8';
-        
-        // Désactiver la vérification SSL en développement (RETIRER EN PRODUCTION)
-        // $mail->SMTPOptions = array(
-        //     'ssl' => array(
-        //         'verify_peer' => false,
-        //         'verify_peer_name' => false,
-        //         'allow_self_signed' => true
-        //     )
-        // );
         
         // Expéditeur et destinataire
         $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);

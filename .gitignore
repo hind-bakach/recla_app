@@ -1,0 +1,25 @@
+# Fichiers de configuration sensibles
+.env
+includes/email_config.php
+
+# Fichiers uploadés
+uploads/*
+!uploads/.gitkeep
+
+# Vendor (dépendances)
+vendor/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Fichiers IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
