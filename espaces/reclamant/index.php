@@ -6,6 +6,26 @@ require_role('reclamant');
 
 $user_id = $_SESSION['user_id'];
 $pdo = get_pdo();
+
+// Compter les notifications non lues
+$notif_count = 0;
+$recent_notifications = [];
+try {
+    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0");
+    $stmt->execute([$user_id]);
+    $notif_result = $stmt->fetch();
+    $notif_count = $notif_result['count'] ?? 0;
+    
+    // Récupérer les 3 dernières notifications pour le dropdown
+    $stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 3");
+    $stmt->execute([$user_id]);
+    $recent_notifications = $stmt->fetchAll();
+} catch (PDOException $e) {
+    // Table notifications n'existe pas encore
+    $notif_count = 0;
+    $recent_notifications = [];
+}
+
 // Récupérer les statistiques
 $stmt = $pdo->prepare("SELECT 
     COUNT(*) as total,
@@ -119,6 +139,182 @@ include '../../includes/head.php';
     
     .btn-logout:hover {
         color: var(--primary-blue-dark) !important;
+    }
+    
+    .profile-icon {
+        color: var(--primary-blue);
+        transition: var(--transition-base);
+        cursor: pointer;
+        font-size: 1.2rem;
+    }
+    
+    .profile-icon:hover {
+        color: var(--primary-blue-dark);
+        transform: scale(1.1);
+    }
+    
+    .notification-icon {
+        position: relative;
+        color: var(--primary-blue);
+        font-size: 1.3rem;
+        transition: var(--transition-base);
+        cursor: pointer;
+    }
+    
+    .notification-icon:hover {
+        color: var(--primary-blue-dark);
+        transform: scale(1.1);
+    }
+    
+    .notification-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    .notification-dropdown-wrapper {
+        position: relative;
+    }
+    
+    .notification-dropdown {
+        position: absolute;
+        top: calc(100% + 15px);
+        right: -20px;
+        width: 380px;
+        background: white;
+        border-radius: var(--radius-xl);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+        z-index: 1000;
+        border: 1px solid var(--gray-200);
+    }
+    
+    .notification-dropdown::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        right: 30px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-left: 1px solid var(--gray-200);
+        border-top: 1px solid var(--gray-200);
+        transform: rotate(45deg);
+    }
+    
+    .notification-dropdown-wrapper:hover .notification-dropdown {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    
+    .notification-dropdown-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-200);
+        font-weight: 700;
+        color: var(--gray-900);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .notification-dropdown-item {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-100);
+        transition: var(--transition-base);
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+    }
+    
+    .notification-dropdown-item:hover {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    }
+    
+    .notification-dropdown-item.unread {
+        background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+        border-left: 3px solid var(--primary-blue);
+    }
+    
+    .notification-dropdown-item:last-child {
+        border-bottom: none;
+    }
+    
+    .notification-dropdown-title {
+        font-weight: 600;
+        color: var(--gray-900);
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .notification-dropdown-message {
+        font-size: 0.85rem;
+        color: var(--gray-600);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .notification-dropdown-time {
+        font-size: 0.75rem;
+        color: var(--gray-400);
+        margin-top: 0.25rem;
+    }
+    
+    .notification-dropdown-footer {
+        padding: 0.75rem 1.25rem;
+        text-align: center;
+        border-top: 1px solid var(--gray-200);
+    }
+    
+    .notification-dropdown-footer a {
+        color: var(--primary-blue);
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: var(--transition-base);
+    }
+    
+    .notification-dropdown-footer a:hover {
+        color: var(--primary-blue-dark);
+    }
+    
+    .notification-empty {
+        padding: 2rem 1.25rem;
+        text-align: center;
+        color: var(--gray-400);
+    }
+    
+    .notification-empty i {
+        font-size: 2.5rem;
+        color: var(--gray-300);
+        margin-bottom: 0.5rem;
     }
     
     .main-content-container {
@@ -552,6 +748,66 @@ document.addEventListener('DOMContentLoaded', function() {
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item me-3">
                         <span style="color: #6b7280;">Bonjour, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
+                    </li>
+                    <li class="nav-item me-3">
+                        <a href="profil.php" class="text-decoration-none" title="Mon profil">
+                            <i class="bi bi-person-circle profile-icon"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item me-3">
+                        <div class="notification-dropdown-wrapper">
+                            <a href="notifications.php" class="text-decoration-none position-relative">
+                                <i class="bi bi-bell notification-icon"></i>
+                                <?php if ($notif_count > 0): ?>
+                                    <span class="notification-badge"><?php echo $notif_count > 9 ? '9+' : $notif_count; ?></span>
+                                <?php endif; ?>
+                            </a>
+                            
+                            <!-- Dropdown des notifications -->
+                            <div class="notification-dropdown">
+                                <div class="notification-dropdown-header">
+                                    <span>Notifications</span>
+                                    <?php if ($notif_count > 0): ?>
+                                        <span class="badge bg-danger"><?php echo $notif_count; ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <?php if (empty($recent_notifications)): ?>
+                                    <div class="notification-empty">
+                                        <i class="bi bi-bell-slash"></i>
+                                        <p class="mb-0">Aucune notification</p>
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach ($recent_notifications as $notif): ?>
+                                        <a href="details.php?id=<?php echo $notif['reclamation_id']; ?>" 
+                                           class="notification-dropdown-item <?php echo $notif['is_read'] == 0 ? 'unread' : ''; ?>">
+                                            <div class="notification-dropdown-title">
+                                                <i class="bi bi-<?php echo $notif['type'] == 'nouveau_commentaire' ? 'chat-dots' : 'arrow-repeat'; ?> me-1"></i>
+                                                <?php echo htmlspecialchars($notif['titre']); ?>
+                                            </div>
+                                            <div class="notification-dropdown-message">
+                                                <?php echo htmlspecialchars($notif['message']); ?>
+                                            </div>
+                                            <div class="notification-dropdown-time">
+                                                <i class="bi bi-clock me-1"></i>
+                                                <?php 
+                                                $time = strtotime($notif['created_at']);
+                                                $diff = time() - $time;
+                                                if ($diff < 60) echo 'À l\'instant';
+                                                elseif ($diff < 3600) echo floor($diff / 60) . ' min';
+                                                elseif ($diff < 86400) echo floor($diff / 3600) . ' h';
+                                                else echo floor($diff / 86400) . ' j';
+                                                ?>
+                                            </div>
+                                        </a>
+                                    <?php endforeach; ?>
+                                    
+                                    <div class="notification-dropdown-footer">
+                                        <a href="notifications.php">Voir toutes les notifications →</a>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </li>
                     <li class="nav-item">
                         <a class="btn btn-logout" href="../../frontend/deconnexion.php">

@@ -5,6 +5,49 @@ require_once '../../includes/functions.php';
 require_role('gestionnaire');
 
 $pdo = get_pdo();
+$user_id = $_SESSION['user_id'];
+
+// Récupérer le nombre de notifications non lues pour le gestionnaire
+$unread_count = 0;
+$recent_notifications = [];
+try {
+    // Détecter les colonnes de reclamations
+    $reclamCols = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='reclamations'")->fetchAll(PDO::FETCH_COLUMN);
+    $reclamIdCol = in_array('reclam_id', $reclamCols) ? 'reclam_id' : (in_array('id', $reclamCols) ? 'id' : 'id');
+    $reclamSujetCol = in_array('sujet', $reclamCols) ? 'sujet' : (in_array('objet', $reclamCols) ? 'objet' : (in_array('titre', $reclamCols) ? 'titre' : 'objet'));
+    
+    // Vérifier si la colonne role_destinataire existe
+    $checkCol = $pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='notifications' AND COLUMN_NAME='role_destinataire'");
+    $hasRoleCol = $checkCol->fetchColumn() > 0;
+    
+    if ($hasRoleCol) {
+        $whereClause = "WHERE n.user_id = ? AND n.role_destinataire = 'gestionnaire' AND n.is_read = 0";
+        $whereClause2 = "WHERE n.user_id = ? AND n.role_destinataire = 'gestionnaire'";
+    } else {
+        $whereClause = "WHERE n.user_id = ? AND n.type = 'commentaire_reclamant' AND n.is_read = 0";
+        $whereClause2 = "WHERE n.user_id = ? AND n.type = 'commentaire_reclamant'";
+    }
+    
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications n $whereClause");
+    $stmt->execute([$user_id]);
+    $unread_count = (int)$stmt->fetchColumn();
+    
+    // Récupérer les 3 dernières notifications avec le nom du réclamant
+    $stmt = $pdo->prepare("
+        SELECT n.*, r.$reclamSujetCol as sujet, u.nom, u.prenom
+        FROM notifications n
+        LEFT JOIN reclamations r ON n.reclamation_id = r.$reclamIdCol
+        LEFT JOIN users u ON r.user_id = u.user_id
+        $whereClause2
+        ORDER BY n.created_at DESC 
+        LIMIT 3
+    ");
+    $stmt->execute([$user_id]);
+    $recent_notifications = $stmt->fetchAll();
+} catch (PDOException $e) {
+    // Ignorer les erreurs silencieusement
+    error_log("Erreur notifications gestionnaire: " . $e->getMessage());
+}
 
 // Filtrage
 $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
@@ -484,6 +527,180 @@ include '../../includes/head.php';
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
     }
+    
+    /* Notifications Styles */
+    .notification-icon-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .notification-icon {
+        color: var(--gray-700);
+        font-size: 1.25rem;
+        position: relative;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        padding: 0.5rem;
+        border-radius: var(--radius-md);
+    }
+    
+    .notification-icon:hover {
+        color: var(--primary-blue);
+        background-color: var(--gray-100);
+    }
+    
+    .notification-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border-radius: var(--radius-full);
+        padding: 0.125rem 0.375rem;
+        font-size: 0.625rem;
+        font-weight: 700;
+        min-width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        animation: notifPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes notifPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    
+    /* Notification Dropdown */
+    .notification-dropdown-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .notification-dropdown {
+        position: absolute;
+        top: calc(100% + 15px);
+        right: 0;
+        background: white;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        width: 350px;
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+    }
+    
+    .notification-dropdown-wrapper:hover .notification-dropdown {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    
+    .notification-dropdown::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        right: 20px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        transform: rotate(45deg);
+        box-shadow: -3px -3px 5px rgba(0,0,0,0.05);
+    }
+    
+    .notification-dropdown-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 2px solid var(--gray-100);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .notification-dropdown-header h6 {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+    
+    .notification-dropdown-item {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-100);
+        transition: all var(--transition-base);
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+    }
+    
+    .notification-dropdown-item:hover {
+        background: linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, rgba(14, 165, 233, 0.05) 100%);
+        transform: translateX(4px);
+    }
+    
+    .notification-dropdown-item.unread {
+        background-color: rgba(59, 130, 246, 0.05);
+        border-left: 3px solid var(--primary-blue);
+    }
+    
+    .notification-dropdown-item .notification-time {
+        font-size: 0.688rem;
+        color: var(--gray-500);
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .notification-dropdown-item .notification-title {
+        font-size: 0.813rem;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 0.25rem;
+    }
+    
+    .notification-dropdown-item .notification-message {
+        font-size: 0.75rem;
+        color: var(--gray-600);
+        line-height: 1.4;
+    }
+    
+    .notification-dropdown-footer {
+        padding: 0.75rem 1.25rem;
+        text-align: center;
+        border-top: 1px solid var(--gray-100);
+    }
+    
+    .notification-dropdown-footer a {
+        color: var(--primary-blue);
+        font-size: 0.813rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all var(--transition-base);
+    }
+    
+    .notification-dropdown-footer a:hover {
+        color: #0891b2;
+        text-decoration: underline;
+    }
+    
+    .notification-empty {
+        padding: 2rem;
+        text-align: center;
+        color: var(--gray-400);
+    }
+    
+    .notification-empty i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
 </style>
 
 <script src="../../js/main.js" defer></script>
@@ -497,6 +714,73 @@ include '../../includes/head.php';
             </span>
             <div class="d-flex align-items-center gap-3">
                 <span class="user-info">Bonjour, <strong><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'manel el moidni'); ?></strong></span>
+                
+                <!-- Notification Icon with Dropdown -->
+                <div class="notification-dropdown-wrapper">
+                    <a href="notifications.php" class="notification-icon-wrapper">
+                        <i class="bi bi-bell notification-icon"></i>
+                        <?php if ($unread_count > 0): ?>
+                            <span class="notification-badge"><?php echo $unread_count; ?></span>
+                        <?php endif; ?>
+                    </a>
+                    
+                    <div class="notification-dropdown">
+                        <div class="notification-dropdown-header">
+                            <h6>
+                                <i class="bi bi-bell me-1"></i> Notifications
+                                <?php if ($unread_count > 0): ?>
+                                    <span class="notification-badge" style="position: static; margin-left: 0.5rem;"><?php echo $unread_count; ?></span>
+                                <?php endif; ?>
+                            </h6>
+                        </div>
+                        
+                        <?php if (count($recent_notifications) > 0): ?>
+                            <?php foreach ($recent_notifications as $notif): ?>
+                                <?php
+                                $created_at = $notif['created_at'];
+                                $diff = time() - strtotime($created_at);
+                                $time_text = '';
+                                if ($diff < 60) {
+                                    $time_text = 'À l\'instant';
+                                } elseif ($diff < 3600) {
+                                    $time_text = floor($diff / 60) . ' min';
+                                } elseif ($diff < 86400) {
+                                    $time_text = floor($diff / 3600) . ' h';
+                                } else {
+                                    $time_text = floor($diff / 86400) . ' j';
+                                }
+                                ?>
+                                <a href="notifications.php?mark_read=<?php echo $notif['notification_id']; ?>&redirect_to=<?php echo $notif['reclamation_id']; ?>" 
+                                   class="notification-dropdown-item <?php echo $notif['is_read'] ? '' : 'unread'; ?>">
+                                    <div class="notification-time">
+                                        <i class="bi bi-clock"></i>
+                                        <?php echo $time_text; ?>
+                                    </div>
+                                    <div class="notification-title">
+                                        <i class="bi bi-chat-dots me-1"></i>
+                                        <?php echo htmlspecialchars($notif['titre']); ?>
+                                    </div>
+                                    <div class="notification-message">
+                                        <?php echo htmlspecialchars($notif['message']); ?>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="notification-empty">
+                                <i class="bi bi-bell-slash"></i>
+                                <p class="mb-0">Aucune notification</p>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <div class="notification-dropdown-footer">
+                            <a href="notifications.php">
+                                Voir toutes les notifications
+                                <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
                 <a class="btn-disconnect" href="../../frontend/deconnexion.php">
                     <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
                 </a>

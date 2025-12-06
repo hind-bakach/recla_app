@@ -127,9 +127,34 @@ if ($pdo->query("SHOW TABLES LIKE 'commentaires'")->fetchColumn()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['new_status'])) {
         $new_status = $_POST['new_status'];
+        $old_status = $reclamation['statut'] ?? '';
+        
         $updSql = "UPDATE reclamations SET " . $reclamStatusCol . " = ? WHERE " . $reclamIdCol . " = ?";
         $stmt = $pdo->prepare($updSql);
         $stmt->execute([$new_status, $reclamation_id]);
+
+        // Créer une notification de changement de statut
+        if ($old_status != $new_status) {
+            try {
+                // Récupérer l'user_id du propriétaire de la réclamation
+                $owner_stmt = $pdo->prepare("SELECT " . $reclamUserCol . " FROM reclamations WHERE " . $reclamIdCol . " = ?");
+                $owner_stmt->execute([$reclamation_id]);
+                $owner_id = $owner_stmt->fetchColumn();
+                
+                if ($owner_id) {
+                    $notif_stmt = $pdo->prepare("
+                        INSERT INTO notifications (user_id, reclamation_id, type, titre, message)
+                        VALUES (?, ?, 'changement_statut', ?, ?)
+                    ");
+                    $titre = "Statut changé: " . ($reclamation['sujet'] ?? 'Votre réclamation');
+                    $message = "Le statut de votre réclamation est maintenant: " . get_status_label($new_status);
+                    $notif_stmt->execute([$owner_id, $reclamation_id, $titre, $message]);
+                }
+            } catch (PDOException $e) {
+                // Ignorer l'erreur si la table n'existe pas
+                error_log("Erreur notification: " . $e->getMessage());
+            }
+        }
 
         // Ajouter un commentaire système automatique (optionnel) si table commentaires existe
         $msg = "Le statut a été changé en : " . get_status_label($new_status);
@@ -159,6 +184,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("INSERT INTO commentaires (reclamation_id, user_id, comment) VALUES (?, ?, ?)");
                 $stmt->execute([$reclamation_id, $user_id, $comment]);
             }
+            
+            // Créer une notification de nouveau commentaire
+            try {
+                // Récupérer l'user_id du propriétaire de la réclamation
+                $owner_stmt = $pdo->prepare("SELECT " . $reclamUserCol . " FROM reclamations WHERE " . $reclamIdCol . " = ?");
+                $owner_stmt->execute([$reclamation_id]);
+                $owner_id = $owner_stmt->fetchColumn();
+                
+                // Ne créer la notification que si ce n'est pas le propriétaire qui commente
+                if ($owner_id && $owner_id != $user_id) {
+                    $notif_stmt = $pdo->prepare("
+                        INSERT INTO notifications (user_id, reclamation_id, type, titre, message)
+                        VALUES (?, ?, 'nouveau_commentaire', ?, ?)
+                    ");
+                    $titre = "Nouveau commentaire sur: " . ($reclamation['sujet'] ?? 'Votre réclamation');
+                    $message = "Un gestionnaire a ajouté un commentaire à votre réclamation";
+                    $notif_stmt->execute([$owner_id, $reclamation_id, $titre, $message]);
+                }
+            } catch (PDOException $e) {
+                // Ignorer l'erreur si la table n'existe pas
+                error_log("Erreur notification: " . $e->getMessage());
+            }
+            
             redirect("traitement.php?id=$reclamation_id");
         }
     }

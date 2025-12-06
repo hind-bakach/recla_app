@@ -224,6 +224,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
         $stmt = $pdo->prepare($sql);
         $stmt->execute($values);
 
+        // Créer une notification pour tous les gestionnaires
+        try {
+            // Récupérer les informations du réclamant
+            $reclamantInfo = $pdo->prepare("SELECT nom, prenom FROM users WHERE user_id = ?");
+            $reclamantInfo->execute([$user_id]);
+            $reclamant = $reclamantInfo->fetch();
+            $nom_complet = ($reclamant['prenom'] ?? '') . ' ' . ($reclamant['nom'] ?? 'Réclamant');
+            
+            // Récupérer tous les utilisateurs avec le rôle gestionnaire
+            $gestionnaires = $pdo->query("SELECT user_id FROM users WHERE role = 'gestionnaire'")->fetchAll(PDO::FETCH_COLUMN);
+            
+            if (count($gestionnaires) > 0) {
+                // Préparer les données de notification
+                $titre = "Nouveau commentaire de " . trim($nom_complet);
+                // Tronquer le commentaire s'il est trop long
+                $comment_preview = strlen($comment) > 100 ? substr($comment, 0, 100) . '...' : $comment;
+                $message = trim($nom_complet) . " a écrit : \"" . $comment_preview . "\" sur la réclamation #" . $reclamation_id;
+                
+                // Vérifier si la colonne role_destinataire existe
+                $checkCol = $pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='notifications' AND COLUMN_NAME='role_destinataire'");
+                $hasRoleCol = $checkCol->fetchColumn() > 0;
+                
+                // Insérer une notification pour chaque gestionnaire
+                if ($hasRoleCol) {
+                    $notifStmt = $pdo->prepare("
+                        INSERT INTO notifications (user_id, reclamation_id, type, titre, message, role_destinataire, is_read, created_at) 
+                        VALUES (?, ?, 'commentaire_reclamant', ?, ?, 'gestionnaire', 0, NOW())
+                    ");
+                    foreach ($gestionnaires as $gestionnaire_id) {
+                        $notifStmt->execute([$gestionnaire_id, $reclamation_id, $titre, $message]);
+                    }
+                } else {
+                    $notifStmt = $pdo->prepare("
+                        INSERT INTO notifications (user_id, reclamation_id, type, titre, message, is_read, created_at) 
+                        VALUES (?, ?, 'commentaire_reclamant', ?, ?, 0, NOW())
+                    ");
+                    foreach ($gestionnaires as $gestionnaire_id) {
+                        $notifStmt->execute([$gestionnaire_id, $reclamation_id, $titre, $message]);
+                    }
+                }
+            }
+        } catch (PDOException $e) {
+            // Ignorer les erreurs de notification silencieusement
+            error_log("Erreur création notification gestionnaire: " . $e->getMessage());
+        }
+
         // Rafraîchir la page
         redirect("details.php?id=$reclamation_id");
     }
