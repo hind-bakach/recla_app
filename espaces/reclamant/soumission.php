@@ -634,7 +634,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <nav class="navbar navbar-minimal navbar-expand-lg">
         <div class="container py-2">
             <a class="navbar-brand" href="index.php">
-                <i class="bi bi-chat-square-text me-2" style="color: #0891b2;"></i>Gestion des Réclamations
+                <i class="bi bi-check-circle-fill me-2" style="color: #14b8a6;"></i>Resolve
             </a>
             <div class="ms-auto">
                 <a class="btn btn-back" href="index.php">

@@ -362,7 +362,7 @@ include '../../includes/head.php';
     <nav class="navbar navbar-minimal navbar-expand-lg">
         <div class="container py-2">
             <a class="navbar-brand" href="index.php">
-                <i class="bi bi-chat-square-text me-2" style="color: #0891b2;"></i>Gestion des Réclamations
+                <i class="bi bi-check-circle-fill me-2" style="color: #14b8a6;"></i>Resolve
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" style="border-color: #e5e7eb;">
                 <span class="navbar-toggler-icon"></span>

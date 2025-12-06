@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Favicon</title>
+</head>
+<body>
+    <canvas id="canvas" width="32" height="32"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Fond cercle teal
+        ctx.fillStyle = '#14b8a6';
+        ctx.beginPath();
+        ctx.arc(16, 16, 14, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Coche blanche
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(8, 16);
+        ctx.lineTo(13, 21);
+        ctx.lineTo(24, 10);
+        ctx.stroke();
+        
+        // Télécharger
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'favicon.png';
+            a.click();
+        });
+    </script>
+    <p>Le téléchargement de favicon.png devrait commencer automatiquement.</p>
+    <p>Ensuite, convertissez-le en .ico sur un site comme favicon.io</p>
+</body>
+</html>

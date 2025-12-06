@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <nav class="navbar navbar-minimal">
         <div class="container">
             <span class="navbar-brand">
-                <i class="bi bi-app-indicator"></i> Recla App
+                <i class="bi bi-check-circle-fill"></i> Resolve
             </span>
             <a href="index.php" class="btn-back">
                 <i class="bi bi-arrow-left me-2"></i>Retour

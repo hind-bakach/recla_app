@@ -710,7 +710,7 @@ include '../../includes/head.php';
     <nav class="navbar navbar-minimal">
         <div class="container-fluid">
             <span class="navbar-brand">
-                <i class="bi bi-person-workspace"></i> Espace Gestionnaire
+                <i class="bi bi-check-circle-fill me-2" style="color: #14b8a6;"></i>Resolve - Gestionnaire
             </span>
             <div class="d-flex align-items-center gap-3">
                 <span class="user-info">Bonjour, <strong><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'manel el moidni'); ?></strong></span>

@@ -7,6 +7,7 @@ require_once '../includes/config.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resolve - Plateforme Intelligente de Gestion des Réclamations</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2314b8a6'/%3E%3Cpath d='M30 50 L45 65 L70 35' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="../css/bootstrap.min.css">
     <link rel="stylesheet" href="../css/modern.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -234,7 +235,7 @@ require_once '../includes/config.php';
                 <div>
                     <h5 style="color: white; font-weight: 600; margin-bottom: 1rem;">Support</h5>
                     <ul style="list-style: none; padding: 0;">
-                        <li style="margin-bottom: 0.5rem;"><i class="bi bi-envelope"></i> support@reclamations.app</li>
+                        <li style="margin-bottom: 0.5rem;"><i class="bi bi-envelope"></i> support@resolve.app</li>
                         <li style="margin-bottom: 0.5rem;"><i class="bi bi-telephone"></i> +212 XXX-XXXX</li>
                     </ul>
                 </div>
