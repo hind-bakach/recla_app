@@ -1,6 +1,7 @@
 <?php
 require_once '../../includes/config.php';
 require_once '../../includes/functions.php';
+require_once '../../includes/lang.php';
 
 require_role('reclamant');
 
@@ -680,11 +681,11 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- En-tête -->
             <div class="d-flex justify-content-between align-items-start mb-4">
                 <div>
-                    <h6 class="section-title">Espace Réclamant</h6>
-                    <h1 class="main-title">Détails de la réclamation</h1>
+                    <h6 class="section-title"><?php echo t('dashboard_area_claimant'); ?></h6>
+                    <h1 class="main-title"><?php echo t('claim_detail_title'); ?></h1>
                 </div>
                 <a href="index.php" class="btn-back">
-                    <i class="bi bi-arrow-left me-2"></i>Retour au tableau de bord
+                    <i class="bi bi-arrow-left me-2"></i><?php echo t('back_to_dashboard'); ?>
                 </a>
             </div>
 
@@ -693,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="section-header">
                     <i class="bi bi-file-text"></i>
                     <h5 class="mb-0 fw-bold" style="color: var(--gray-900);">
-                        Réclamation #<?php echo $reclamation['id']; ?>
+                        <?php echo t('claim_number'); ?> #<?php echo $reclamation['id']; ?>
                     </h5>
                     <div class="ms-auto">
                         <?php 
@@ -703,19 +704,19 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             if ($statut === 'ferme' || $statut === 'fermee' || $statut === 'closed') {
                                 $badge_class = 'bg-secondary-subtle text-secondary-emphasis';
-                                $statut_label = 'Fermée';
+                                $statut_label = t('status_closed');
                             } elseif ($statut === 'traite' || $statut === 'traitee' || $statut === 'acceptee' || $statut === 'accepted') {
                                 $badge_class = 'bg-primary-subtle text-primary-emphasis';
-                                $statut_label = 'Acceptée';
+                                $statut_label = t('status_accepted');
                             } elseif (stripos($statut, 'attente') !== false || stripos($statut, 'info') !== false || stripos($statut, 'pending') !== false) {
                                 $badge_class = 'bg-danger-subtle text-danger-emphasis';
-                                $statut_label = 'En attente info';
+                                $statut_label = t('status_awaiting_info');
                             } elseif ($statut === 'en_cours' || $statut === 'in_progress') {
                                 $badge_class = 'bg-success-subtle text-success-emphasis';
-                                $statut_label = 'En cours de traitement';
+                                $statut_label = t('status_processing');
                             } else {
                                 $badge_class = 'bg-success-subtle text-success-emphasis';
-                                $statut_label = 'En cours de traitement';
+                                $statut_label = t('status_processing');
                             }
                         ?>
                         <span class="badge <?php echo $badge_class; ?> badge-status">
@@ -729,11 +730,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="mb-4 d-flex gap-4">
                     <span class="info-meta">
                         <i class="bi bi-calendar3"></i>
-                        Créé le <?php echo format_date($reclamation['created_at']); ?>
+                        <?php echo t('submitted_on'); ?> <?php echo format_date($reclamation['created_at']); ?>
                     </span>
                     <span class="info-meta">
                         <i class="bi bi-tag"></i>
-                        <?php echo htmlspecialchars($reclamation['categorie_nom'] ?? 'Non catégorisé'); ?>
+                        <?php echo htmlspecialchars($reclamation['categorie_nom'] ?? t('claim_category')); ?>
                     </span>
                 </div>
 
@@ -744,7 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <?php if (count($attachments) > 0): ?>
                     <div class="section-header mt-4">
                         <i class="bi bi-paperclip"></i>
-                        <h6 class="mb-0 fw-bold" style="color: var(--gray-900);">Pièces jointes</h6>
+                        <h6 class="mb-0 fw-bold" style="color: var(--gray-900);"><?php echo t('attached_file'); ?></h6>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                         <?php foreach ($attachments as $att): ?>
@@ -761,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="detail-card">
                 <div class="section-header">
                     <i class="bi bi-chat-dots"></i>
-                    <h5 class="mb-0 fw-bold" style="color: var(--gray-900);">Historique & Échanges</h5>
+                    <h5 class="mb-0 fw-bold" style="color: var(--gray-900);"><?php echo t('comments_history'); ?></h5>
                 </div>
                 
                 <div class="timeline">
@@ -790,7 +791,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <?php else: ?>
                         <div class="empty-state">
                             <i class="bi bi-inbox"></i>
-                            <p class="mt-3">Aucun échange pour le moment.</p>
+                            <p class="mt-3"><?php echo t('no_comments'); ?></p>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -802,21 +803,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="mb-3">
                             <label for="comment" class="form-label fw-semibold" style="color: var(--gray-700);">
                                 <i class="bi bi-chat-left-text me-2" style="color: var(--primary-blue);"></i>
-                                Ajouter un message
+                                <?php echo t('add_comment'); ?>
                             </label>
                             <textarea class="form-control" id="comment" name="comment" 
-                                      placeholder="Votre message..." 
+                                      placeholder="<?php echo t('comment_placeholder'); ?>" 
                                       required></textarea>
                         </div>
                         <div class="text-end">
                             <button type="submit" class="btn-send">
-                                <i class="bi bi-send-fill me-2"></i>Envoyer
+                                <i class="bi bi-send-fill me-2"></i><?php echo t('send'); ?>
                             </button>
                         </div>
                     </form>
                 <?php else: ?>
                     <div class="alert mb-0" style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca; color: var(--danger); text-align: center; padding: 1rem; border-radius: var(--radius-lg);">
-                        <i class="bi bi-lock-fill me-2"></i>Cette réclamation est fermée. Vous ne pouvez plus ajouter de commentaires.
+                        <i class="bi bi-lock-fill me-2"></i><?php echo t('claim_closed_no_comment'); ?>
                     </div>
                 <?php endif; ?>
             </div>

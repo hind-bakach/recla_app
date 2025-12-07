@@ -1,6 +1,7 @@
 <?php
 require_once '../../includes/config.php';
 require_once '../../includes/functions.php';
+require_once '../../includes/lang.php';
 
 require_role('reclamant');
 
@@ -370,17 +371,19 @@ include '../../includes/head.php';
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item me-3">
-                        <a href="notifications.php" class="text-decoration-none position-relative">
-                            <i class="bi bi-bell-fill notification-icon"></i>
-                            <?php if ($unread_count > 0): ?>
-                                <span class="notification-badge"><?php echo $unread_count > 9 ? '9+' : $unread_count; ?></span>
-                            <?php endif; ?>
+                        <span style="color: #6b7280;">Bonjour, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
+                    </li>
+                    <li class="nav-item me-3">
+                        <a href="profil.php" class="text-decoration-none" title="Mon profil">
+                            <i class="bi bi-person-circle profile-icon"></i>
                         </a>
                     </li>
                     <li class="nav-item me-3">
-                        <a href="profil.php" class="text-decoration-none d-flex align-items-center gap-2">
-                            <i class="bi bi-person-circle profile-icon"></i>
-                            <span style="color: #6b7280;">Bonjour, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
+                        <a href="notifications.php" class="text-decoration-none position-relative">
+                            <i class="bi bi-bell-fill notification-icon" style="color: #14b8a6;"></i>
+                            <?php if ($unread_count > 0): ?>
+                                <span class="notification-badge"><?php echo $unread_count > 9 ? '9+' : $unread_count; ?></span>
+                            <?php endif; ?>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -398,17 +401,17 @@ include '../../includes/head.php';
             <!-- En-tête -->
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                 <div>
-                    <h6 class="section-title">Espace Réclamant</h6>
-                    <h1 class="main-title">Notifications</h1>
+                    <h6 class="section-title"><?php echo t('dashboard_area_claimant'); ?></h6>
+                    <h1 class="main-title"><?php echo t('notifications_title'); ?></h1>
                 </div>
                 <div class="d-flex gap-2">
                     <?php if ($unread_count > 0): ?>
                         <a href="?mark_all_read=1" class="btn btn-primary-action">
-                            <i class="bi bi-check-all me-2"></i>Tout marquer comme lu
+                            <i class="bi bi-check-all me-2"></i><?php echo t('mark_all_read'); ?>
                         </a>
                     <?php endif; ?>
                     <a href="index.php" class="btn btn-secondary-action">
-                        <i class="bi bi-arrow-left me-2"></i>Retour
+                        <i class="bi bi-arrow-left me-2"></i><?php echo t('back'); ?>
                     </a>
                 </div>
             </div>
@@ -417,8 +420,8 @@ include '../../includes/head.php';
             <?php if (empty($notifications)): ?>
                 <div class="empty-state">
                     <i class="bi bi-bell-slash"></i>
-                    <h3>Aucune notification</h3>
-                    <p>Vous n'avez aucune notification pour le moment.</p>
+                    <h3><?php echo t('no_notifications'); ?></h3>
+                    <p><?php echo t('stay_tuned'); ?></p>
                 </div>
             <?php else: ?>
                 <?php foreach ($notifications as $notif): ?>
@@ -435,19 +438,19 @@ include '../../includes/head.php';
                                     <?php 
                                     $time = strtotime($notif['created_at']);
                                     $diff = time() - $time;
-                                    if ($diff < 60) echo 'À l\'instant';
-                                    elseif ($diff < 3600) echo floor($diff / 60) . ' min';
-                                    elseif ($diff < 86400) echo floor($diff / 3600) . ' h';
-                                    else echo floor($diff / 86400) . ' j';
+                                    if ($diff < 60) echo t('just_now');
+                                    elseif ($diff < 3600) echo floor($diff / 60) . ' ' . t('minutes_ago');
+                                    elseif ($diff < 86400) echo floor($diff / 3600) . ' ' . t('hours_ago');
+                                    else echo floor($diff / 86400) . ' ' . t('days_ago');
                                     ?>
                                 </div>
                                 <div class="notification-actions">
                                     <a href="details.php?id=<?php echo $notif['reclamation_id']; ?>" class="btn-notification btn-view">
-                                        <i class="bi bi-eye me-1"></i>Voir la réclamation
+                                        <i class="bi bi-eye me-1"></i><?php echo t('view'); ?> <?php echo t('claim_details'); ?>
                                     </a>
                                     <?php if ($notif['is_read'] == 0): ?>
                                         <a href="?mark_read=<?php echo $notif['notification_id']; ?>" class="btn-notification btn-mark-read">
-                                            <i class="bi bi-check me-1"></i>Marquer comme lu
+                                            <i class="bi bi-check me-1"></i><?php echo t('mark_as_read'); ?>
                                         </a>
                                     <?php endif; ?>
                                 </div>

@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
+require_once '../includes/lang.php';
 
 // Si l'utilisateur est déjà connecté et tente d'accéder au formulaire en GET, le rediriger
 // (Ne pas rediriger si POST pour permettre la soumission du formulaire)
@@ -21,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if (empty($email) || empty($password)) {
-        $error = "Veuillez remplir tous les champs.";
+        $error = t('fill_all_fields');
     } else {
         $pdo = get_pdo();
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
@@ -63,21 +64,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     redirect('../espaces/reclamant/index.php');
                 }
             } else {
-                $error = "Email ou mot de passe incorrect.";
+                $error = t('invalid_credentials');
             }
         } else {
-            $error = "Email ou mot de passe incorrect.";
+            $error = t('invalid_credentials');
         }
     }
 }
 
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - Resolve</title>
+    <title><?php echo t('login_title'); ?> - Resolve</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2314b8a6'/%3E%3Cpath d='M30 50 L45 65 L70 35' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="../css/bootstrap.min.css">
     <link rel="stylesheet" href="../css/modern.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -390,8 +392,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="auth-icon">
                 <i class="bi bi-person-circle"></i>
             </div>
-            <h1 class="auth-title">Connexion</h1>
-            <p class="auth-subtitle">Accédez à votre espace</p>
+            <h1 class="auth-title"><?php echo t('login_title'); ?></h1>
+            <p class="auth-subtitle"><?php echo t('login_subtitle'); ?></p>
 
         <?php if ($error): ?>
             <div class="alert-modern alert-danger-modern">
@@ -402,7 +404,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" action="login.php">
             <div class="form-group-modern">
-                <label for="email" class="form-label-modern">Adresse Email</label>
+                <label for="email" class="form-label-modern"><?php echo t('email'); ?></label>
                 <div class="input-with-icon">
                     <i class="bi bi-envelope input-icon"></i>
                     <input type="email" class="form-control-modern" id="email" name="email" 
@@ -411,36 +413,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             
             <div class="form-group-modern">
-                <label for="password" class="form-label-modern">Mot de passe</label>
+                <label for="password" class="form-label-modern"><?php echo t('password'); ?></label>
                 <div class="input-with-icon">
                     <i class="bi bi-lock input-icon"></i>
                     <input type="password" class="form-control-modern" id="password" name="password" 
                            placeholder="••••••••" required autocomplete="current-password">
-                    <button type="button" class="toggle-visibility" aria-label="Afficher / masquer le mot de passe" data-target="password">
+                    <button type="button" class="toggle-visibility" aria-label="<?php echo t('show_hide_password'); ?>" data-target="password">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
             </div>
             
             <button type="submit" class="btn-login">
-                Se connecter
+                <?php echo t('login_button'); ?>
             </button>
             
             <div class="text-center mt-3">
                 <a href="mot-de-passe-oublie.php" class="forgot-password-link">
-                    <i class="bi bi-question-circle me-1"></i>Mot de passe oublié ?
+                    <i class="bi bi-question-circle me-1"></i><?php echo t('forgot_password'); ?>
                 </a>
             </div>
         </form>
 
         <div class="auth-links">
             <p style="margin-bottom: 0.75rem; color: var(--gray-600);">
-                Pas encore de compte ? 
-                <a href="register.php" class="auth-link">Créer un compte</a>
+                <?php echo t('no_account'); ?> 
+                <a href="register.php" class="auth-link"><?php echo t('create_account'); ?></a>
             </p>
             <a href="index.php" class="back-link">
                 <i class="bi bi-arrow-left"></i>
-                Retour à l'accueil
+                <?php echo t('back_home'); ?>
             </a>
         </div>
         </div>
@@ -449,27 +451,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="showcase-inner">
                 <div class="showcase-badge">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    Sécurisé & Moderne
+                    <?php echo t('showcase_badge'); ?>
                 </div>
-                <h2 class="showcase-title">Bienvenue sur Resolve</h2>
+                <h2 class="showcase-title"><?php echo t('showcase_title'); ?></h2>
                 <ul class="showcase-points">
                     <li>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Suivez vos réclamations en temps réel et recevez des mises à jour.
+                        <?php echo t('showcase_feature_1'); ?>
                     </li>
                     <li>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Interface épurée, rapide et accessible sur tous les appareils.
+                        <?php echo t('showcase_feature_2'); ?>
                     </li>
                     <li>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Données protégées avec chiffrement et bonnes pratiques.
+                        <?php echo t('showcase_feature_3'); ?>
                     </li>
                 </ul>
                 <div class="showcase-stats">
-                    <span class="chip"><i class="bi bi-shield-lock"></i> Sécurité</span>
-                    <span class="chip"><i class="bi bi-speedometer2"></i> Rapide</span>
-                    <span class="chip"><i class="bi bi-phone"></i> Responsive</span>
+                    <span class="chip"><i class="bi bi-shield-lock"></i> <?php echo t('showcase_chip_security'); ?></span>
+                    <span class="chip"><i class="bi bi-speedometer2"></i> <?php echo t('showcase_chip_fast'); ?></span>
+                    <span class="chip"><i class="bi bi-phone"></i> <?php echo t('showcase_chip_responsive'); ?></span>
                 </div>
             </div>
         </aside>

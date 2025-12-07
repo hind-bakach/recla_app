@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
+require_once '../includes/lang.php';
 
 // Si l'utilisateur est déjà connecté, le rediriger
 if (is_logged_in()) {
@@ -17,11 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm_password = $_POST['confirm_password'];
 
     if (empty($nom) || empty($email) || empty($password) || empty($confirm_password)) {
-        $error = "Veuillez remplir tous les champs.";
+        $error = t('fill_all_fields');
     } elseif ($password !== $confirm_password) {
-        $error = "Les mots de passe ne correspondent pas.";
+        $error = t('passwords_not_match');
     } elseif (strlen($password) < 6) {
-        $error = "Le mot de passe doit contenir au moins 6 caractères.";
+        $error = t('password_min_length');
     } else {
         $pdo = get_pdo();
         
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->fetch()) {
-            $error = "Cet email est déjà utilisé.";
+            $error = t('email_exists');
         } else {
             // Créer le nouvel utilisateur
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -66,11 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription - Resolve</title>
+    <title><?php echo t('register_title'); ?> - Resolve</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2314b8a6'/%3E%3Cpath d='M30 50 L45 65 L70 35' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="../css/bootstrap.min.css">
     <link rel="stylesheet" href="../css/modern.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -374,8 +376,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <i class="bi bi-person-plus-fill"></i>
             </div>
             
-            <h1 class="auth-title">Inscription</h1>
-            <p class="auth-subtitle">Rejoignez notre plateforme</p>
+            <h1 class="auth-title"><?php echo t('register_title'); ?></h1>
+            <p class="auth-subtitle"><?php echo t('register_subtitle'); ?></p>
 
         <?php if ($error): ?>
             <div class="alert-modern alert-danger-modern">
@@ -389,7 +391,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <i class="bi bi-check-circle-fill"></i>
                 <div>
                     <div><?php echo htmlspecialchars($success); ?></div>
-                    <a href="login.php" class="btn-register" style="margin-top: 1rem; padding: 0.75rem;">Se connecter maintenant</a>
+                    <a href="login.php" class="btn-register" style="margin-top: 1rem; padding: 0.75rem;"><?php echo t('login_now'); ?></a>
                 </div>
             </div>
         <?php endif; ?>
@@ -397,17 +399,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if (empty($success)): ?>
         <form method="POST" action="register.php">
             <div class="form-group-modern">
-                <label for="nom" class="form-label-modern">Nom complet</label>
+                <label for="nom" class="form-label-modern"><?php echo t('full_name'); ?></label>
                 <div class="input-with-icon">
                     <i class="bi bi-person input-icon"></i>
                     <input type="text" class="form-control-modern" id="nom" name="nom" 
-                           placeholder="Votre nom" required 
+                           placeholder="<?php echo t('full_name'); ?>" required 
                            value="<?php echo isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : ''; ?>">
                 </div>
             </div>
             
             <div class="form-group-modern">
-                <label for="email" class="form-label-modern">Adresse Email</label>
+                <label for="email" class="form-label-modern"><?php echo t('email'); ?></label>
                 <div class="input-with-icon">
                     <i class="bi bi-envelope input-icon"></i>
                     <input type="email" class="form-control-modern" id="email" name="email" 
@@ -417,47 +419,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             
             <div class="form-group-modern">
-                <label for="password" class="form-label-modern">Mot de passe</label>
+                <label for="password" class="form-label-modern"><?php echo t('password'); ?></label>
                 <div class="input-with-icon">
                     <i class="bi bi-lock input-icon"></i>
                     <input type="password" class="form-control-modern" id="password" name="password" 
                            placeholder="••••••••" required autocomplete="new-password">
-                    <button type="button" class="toggle-visibility" aria-label="Afficher / masquer le mot de passe" data-target="password">
+                    <button type="button" class="toggle-visibility" aria-label="<?php echo t('show_hide_password'); ?>" data-target="password">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
-                <div class="form-hint">Au moins 6 caractères</div>
+                <div class="form-hint"><?php echo t('password_hint'); ?></div>
                 <div class="password-strength" id="pwdStrength">
                     <div class="strength-track"><div class="strength-bar" id="strengthBar"></div></div>
-                    <div class="strength-label" id="strengthLabel">Force du mot de passe</div>
+                    <div class="strength-label" id="strengthLabel"><?php echo t('password_strength'); ?></div>
                 </div>
             </div>
             
             <div class="form-group-modern">
-                <label for="confirm_password" class="form-label-modern">Confirmer le mot de passe</label>
+                <label for="confirm_password" class="form-label-modern"><?php echo t('confirm_password'); ?></label>
                 <div class="input-with-icon">
                     <i class="bi bi-lock-fill input-icon"></i>
                     <input type="password" class="form-control-modern" id="confirm_password" name="confirm_password" 
                            placeholder="••••••••" required autocomplete="new-password">
-                    <button type="button" class="toggle-visibility" aria-label="Afficher / masquer le mot de passe" data-target="confirm_password">
+                    <button type="button" class="toggle-visibility" aria-label="<?php echo t('show_hide_password'); ?>" data-target="confirm_password">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
             </div>
             
             <button type="submit" class="btn-register">
-                S'inscrire
+                <?php echo t('register_button'); ?>
             </button>
         </form>
         <?php endif; ?>
         <div class="auth-links">
             <p style="margin-bottom: 0.75rem; color: var(--gray-600);">
-                Déjà un compte ? 
-                <a href="login.php" class="auth-link">Se connecter</a>
+                <?php echo t('already_account'); ?> 
+                <a href="login.php" class="auth-link"><?php echo t('login_here'); ?></a>
             </p>
             <a href="index.php" class="back-link">
                 <i class="bi bi-arrow-left"></i>
-                Retour à l'accueil
+                <?php echo t('back_home'); ?>
             </a>
         </div>
         </div>
@@ -466,27 +468,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="showcase-inner">
                 <div class="showcase-badge">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    Simple & Efficace
+                    <?php echo t('showcase_badge_register'); ?>
                 </div>
-                <h2 class="showcase-title">Créez votre compte en quelques secondes</h2>
+                <h2 class="showcase-title"><?php echo t('showcase_title_register'); ?></h2>
                 <ul class="showcase-points">
                     <li>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Notifications claires sur l'état de vos réclamations.
+                        <?php echo t('showcase_feature_register_1'); ?>
                     </li>
                     <li>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Historique et détails accessibles à tout moment.
+                        <?php echo t('showcase_feature_register_2'); ?>
                     </li>
                     <li>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Design soigné pour une expérience confortable.
+                        <?php echo t('showcase_feature_register_3'); ?>
                     </li>
                 </ul>
                 <div class="showcase-stats">
-                    <span class="chip"><i class="bi bi-person-check"></i> Rapide</span>
-                    <span class="chip"><i class="bi bi-shield-lock"></i> Sécurisé</span>
-                    <span class="chip"><i class="bi bi-phone"></i> Responsive</span>
+                    <span class="chip"><i class="bi bi-person-check"></i> <?php echo t('showcase_chip_user_check'); ?></span>
+                    <span class="chip"><i class="bi bi-shield-lock"></i> <?php echo t('showcase_chip_secure'); ?></span>
+                    <span class="chip"><i class="bi bi-phone"></i> <?php echo t('showcase_chip_responsive'); ?></span>
                 </div>
             </div>
         </aside>

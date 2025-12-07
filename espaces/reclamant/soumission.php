@@ -1,6 +1,7 @@
 <?php
 require_once '../../includes/config.php';
 require_once '../../includes/functions.php';
+require_once '../../includes/lang.php';
 
 require_role('reclamant');
 
@@ -75,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id = $_SESSION['user_id'];
 
     if (empty($sujet) || empty($category_id) || empty($description)) {
-        $error = "Veuillez remplir tous les champs obligatoires.";
+        $error = t('fill_required_fields');
     } else {
         try {
             $pdo->beginTransaction();
@@ -201,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } catch (Exception $e) {
             $pdo->rollBack();
-            $error = "Une erreur est survenue: " . $e->getMessage();
+            $error = t('error_occurred') . ": " . $e->getMessage();
         }
     }
 }
@@ -638,7 +639,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </a>
             <div class="ms-auto">
                 <a class="btn btn-back" href="index.php">
-                    <i class="bi bi-arrow-left me-1"></i>Retour au Tableau de Bord
+                    <i class="bi bi-arrow-left me-1"></i><?php echo t('back_to_dashboard'); ?>
                 </a>
             </div>
         </div>
@@ -647,8 +648,8 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="container pb-5">
         <div class="main-content-container">
             <div class="mb-4">
-                <h6 class="section-title">Espace Réclamant</h6>
-                <h1 class="main-title">Nouvelle Réclamation</h1>
+                <h6 class="section-title"><?php echo t('dashboard_area_claimant'); ?></h6>
+                <h1 class="main-title"><?php echo t('submit_claim_title'); ?></h1>
             </div>
                         
                         <?php if ($error): ?>
@@ -661,7 +662,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="alert alert-success" role="alert">
                                 <i class="bi bi-check-circle-fill me-2"></i><?php echo $success; ?>
                                 <div class="mt-3">
-                                    <a href="index.php" class="btn btn-primary-action">Voir mes réclamations</a>
+                                    <a href="index.php" class="btn btn-primary-action"><?php echo t('view_my_claims'); ?></a>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -671,18 +672,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="mb-4 form-group-animated">
                                 <label for="sujet" class="form-label">
                                     <i class="bi bi-pencil"></i>
-                                    Objet de la réclamation <span class="required-star">*</span>
+                                    <?php echo t('subject'); ?> <span class="required-star">*</span>
                                 </label>
-                                <input type="text" class="form-control" id="sujet" name="sujet" placeholder="Ex: Problème de connexion..." required>
+                                <input type="text" class="form-control" id="sujet" name="sujet" placeholder="<?php echo t('subject_placeholder'); ?>" required>
                             </div>
 
                             <div class="mb-4 form-group-animated">
                                 <label for="category_id" class="form-label">
                                     <i class="bi bi-folder"></i>
-                                    Catégorie <span class="required-star">*</span>
+                                    <?php echo t('category'); ?> <span class="required-star">*</span>
                                 </label>
                                 <select class="form-select" id="category_id" name="category_id" required>
-                                    <option value="" selected disabled>Choisir une catégorie...</option>
+                                    <option value="" selected disabled><?php echo t('choose_category'); ?></option>
                                     <?php foreach ($categories as $cat): ?>
                                         <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nom']); ?></option>
                                     <?php endforeach; ?>
@@ -692,34 +693,34 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="mb-4 form-group-animated">
                                 <label for="description" class="form-label">
                                     <i class="bi bi-text-paragraph"></i>
-                                    Description détaillée <span class="required-star">*</span>
+                                    <?php echo t('description'); ?> <span class="required-star">*</span>
                                 </label>
-                                <textarea class="form-control" id="description" name="description" rows="6" placeholder="Décrivez votre problème en détail..." required></textarea>
+                                <textarea class="form-control" id="description" name="description" rows="6" placeholder="<?php echo t('description_placeholder'); ?>" required></textarea>
                             </div>
 
                             <div class="mb-4 form-group-animated">
                                 <label for="attachment" class="form-label">
                                     <i class="bi bi-paperclip"></i>
-                                    Pièce jointe (Optionnel)
+                                    <?php echo t('supporting_document'); ?> (<?php echo t('optional'); ?>)
                                 </label>
                                 <div class="file-upload-wrapper">
                                     <div class="file-upload-icon">
                                         <i class="bi bi-cloud-arrow-up"></i>
                                     </div>
                                     <div class="file-upload-text">
-                                        <strong>Cliquez pour télécharger</strong> ou glissez-déposez
+                                        <strong><?php echo t('click_to_upload'); ?></strong> <?php echo t('or_drag_drop'); ?>
                                     </div>
-                                    <small class="form-text mt-2">JPG, PNG, PDF, DOC (Max 5 Mo)</small>
+                                    <small class="form-text mt-2"><?php echo t('file_types_max_size'); ?></small>
                                     <input type="file" id="attachment" name="attachment">
                                 </div>
                             </div>
 
                             <div class="d-flex gap-3 justify-content-end mt-5 form-group-animated">
                                 <a href="index.php" class="btn btn-secondary-action">
-                                    <i class="bi bi-x-circle me-2"></i>Annuler
+                                    <i class="bi bi-x-circle me-2"></i><?php echo t('cancel'); ?>
                                 </a>
                                 <button type="submit" class="btn btn-primary-action">
-                                    <i class="bi bi-send me-2"></i>Soumettre la réclamation
+                                    <i class="bi bi-send me-2"></i><?php echo t('submit_claim_button'); ?>
                                 </button>
                             </div>
                         </form>

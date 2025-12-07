@@ -1,6 +1,7 @@
 <?php
 require_once '../../includes/config.php';
 require_once '../../includes/functions.php';
+require_once '../../includes/lang.php';
 
 require_role('reclamant');
 
@@ -33,7 +34,7 @@ $error_message = '';
 
 // Gérer le message de succès après redirection
 if (isset($_GET['success']) && $_GET['success'] == '1') {
-    $success_message = "Profil mis à jour avec succès !";
+    $success_message = t('profile_updated');
 }
 
 // DEBUG: Afficher si le formulaire est soumis
@@ -52,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = "DEBUG: Formulaire reçu - Nom: $nom, Prenom: $prenom, Email: $email, UserID: $user_id";
         
         if (empty($nom) || empty($prenom) || empty($email)) {
-            $error_message = "Tous les champs sont obligatoires.";
+            $error_message = t('all_fields_required');
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error_message = "L'adresse email n'est pas valide.";
+            $error_message = t('email_invalid');
         } else {
             // Vérifier si l'email existe déjà pour un autre utilisateur
             $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
@@ -62,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $existing = $stmt->fetch();
             
             if ($existing) {
-                $error_message = "Cette adresse email est déjà utilisée par l'utilisateur #" . $existing['user_id'];
+                $error_message = t('email_already_used');
             } else {
                 // Mettre à jour les informations
                 try {
@@ -71,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     if ($result) {
                         $_SESSION['user_name'] = $prenom . ' ' . $nom;
-                        $success_message = "Profil mis à jour avec succès !";
+                        $success_message = t('profile_updated');
                         // Recharger les données
                         $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ?");
                         $stmt->execute([$user_id]);
@@ -81,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         header("Location: profil.php?success=1");
                         exit;
                     } else {
-                        $error_message = "Erreur lors de la mise à jour du profil.";
+                        $error_message = t('update_error');
                     }
                 } catch (PDOException $e) {
                     $error_message = "Erreur SQL: " . $e->getMessage();
@@ -97,9 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $confirm_password = $_POST['confirm_password'];
         
         if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
-            $error_message = "Tous les champs du mot de passe sont obligatoires.";
-        } elseif (!isset($user[$password_col]) || !password_verify($current_password, $user[$password_col])) {
-            $error_message = "Le mot de passe actuel est incorrect.";
+            $error_message = t('all_fields_required');
+        } elseif (!password_verify($current_password, $user[$password_col])) {
+            $error_message = t('password_incorrect');
         } elseif (strlen($new_password) < 6) {
             $error_message = "Le nouveau mot de passe doit contenir au moins 6 caractères.";
         } elseif ($new_password !== $confirm_password) {
@@ -437,11 +438,11 @@ include '../../includes/head.php';
             <!-- En-tête -->
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                 <div>
-                    <h6 class="section-title">Espace Réclamant</h6>
-                    <h1 class="main-title">Mon Profil</h1>
+                    <h6 class="section-title"><?php echo t('dashboard_area_claimant'); ?></h6>
+                    <h1 class="main-title"><?php echo t('profile_title'); ?></h1>
                 </div>
                 <a href="index.php" class="btn btn-secondary-action">
-                    <i class="bi bi-arrow-left me-2"></i>Retour au tableau de bord
+                    <i class="bi bi-arrow-left me-2"></i><?php echo t('back_to_dashboard'); ?>
                 </a>
             </div>
             
@@ -473,53 +474,53 @@ include '../../includes/head.php';
             
             <!-- Formulaire de modification du profil -->
             <div class="form-section">
-                <h4 class="form-section-title">Informations personnelles</h4>
+                <h4 class="form-section-title"><?php echo t('personal_info'); ?></h4>
                 <form method="POST" action="profil.php">
                     <div class="row mb-3">
                         <div class="col-md-6 mb-3 mb-md-0">
-                            <label for="prenom" class="form-label">Prénom</label>
+                            <label for="prenom" class="form-label"><?php echo t('first_name'); ?></label>
                             <input type="text" class="form-control" id="prenom" name="prenom" 
                                    value="<?php echo htmlspecialchars($user['prenom']); ?>" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="nom" class="form-label">Nom</label>
+                            <label for="nom" class="form-label"><?php echo t('last_name'); ?></label>
                             <input type="text" class="form-control" id="nom" name="nom" 
                                    value="<?php echo htmlspecialchars($user['nom']); ?>" required>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
+                        <label for="email" class="form-label"><?php echo t('email_address'); ?></label>
                         <input type="email" class="form-control" id="email" name="email" 
                                value="<?php echo htmlspecialchars($user['email']); ?>" required>
                     </div>
                     <button type="submit" name="update_profile" value="1" class="btn btn-primary-action">
-                        <i class="bi bi-check-circle me-2"></i>Enregistrer les modifications
+                        <i class="bi bi-check-circle me-2"></i><?php echo t('save_changes'); ?>
                     </button>
                 </form>
             </div>
             
             <!-- Formulaire de changement de mot de passe -->
             <div class="form-section">
-                <h4 class="form-section-title">Modifier le mot de passe</h4>
+                <h4 class="form-section-title"><?php echo t('account_security'); ?></h4>
                 <form method="POST">
                     <div class="mb-3">
-                        <label for="current_password" class="form-label">Mot de passe actuel</label>
+                        <label for="current_password" class="form-label"><?php echo t('current_password'); ?></label>
                         <input type="password" class="form-control" id="current_password" 
                                name="current_password" required>
                     </div>
                     <div class="mb-3">
-                        <label for="new_password" class="form-label">Nouveau mot de passe</label>
+                        <label for="new_password" class="form-label"><?php echo t('new_password'); ?></label>
                         <input type="password" class="form-control" id="new_password" 
                                name="new_password" required>
-                        <small class="text-muted">Le mot de passe doit contenir au moins 6 caractères.</small>
+                        <small class="text-muted"><?php echo t('password_hint'); ?></small>
                     </div>
                     <div class="mb-3">
-                        <label for="confirm_password" class="form-label">Confirmer le nouveau mot de passe</label>
+                        <label for="confirm_password" class="form-label"><?php echo t('confirm_new_password'); ?></label>
                         <input type="password" class="form-control" id="confirm_password" 
                                name="confirm_password" required>
                     </div>
                     <button type="submit" name="update_password" class="btn btn-primary-action">
-                        <i class="bi bi-shield-lock me-2"></i>Changer le mot de passe
+                        <i class="bi bi-shield-lock me-2"></i><?php echo t('update_password'); ?>
                     </button>
                 </form>
             </div>

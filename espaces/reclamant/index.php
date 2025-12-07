@@ -1,6 +1,7 @@
 <?php
 require_once '../../includes/config.php';
 require_once '../../includes/functions.php';
+require_once '../../includes/lang.php';
 
 require_role('reclamant');
 
@@ -709,16 +710,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             setTimeout(() => { isRefreshing = false; }, 1000);
         }
-    });
-    
+});
+</script>
+
+<script>
+const searchPlaceholder = <?php echo json_encode(t('search_claim')); ?>;
+document.addEventListener('DOMContentLoaded', function() {
     // Real-time search filter
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
-    searchInput.placeholder = '🔍 Rechercher une réclamation...';
+    searchInput.placeholder = searchPlaceholder;
     searchInput.className = 'form-control mb-3';
     searchInput.style.maxWidth = '400px';
     searchInput.style.marginLeft = 'auto';
     
+    const tableRows = document.querySelectorAll('.table-minimal tbody tr');
     const tableContainer = document.querySelector('.table-container');
     if (tableContainer) {
         tableContainer.parentElement.insertBefore(searchInput, tableContainer);
@@ -747,10 +753,10 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item me-3">
-                        <span style="color: #6b7280;">Bonjour, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
+                        <span style="color: #6b7280;"><?php echo t('hello'); ?>, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
                     </li>
                     <li class="nav-item me-3">
-                        <a href="profil.php" class="text-decoration-none" title="Mon profil">
+                        <a href="profil.php" class="text-decoration-none" title="<?php echo t('my_profile'); ?>">
                             <i class="bi bi-person-circle profile-icon"></i>
                         </a>
                     </li>
@@ -766,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <!-- Dropdown des notifications -->
                             <div class="notification-dropdown">
                                 <div class="notification-dropdown-header">
-                                    <span>Notifications</span>
+                                    <span><?php echo t('notifications'); ?></span>
                                     <?php if ($notif_count > 0): ?>
                                         <span class="badge bg-danger"><?php echo $notif_count; ?></span>
                                     <?php endif; ?>
@@ -775,7 +781,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <?php if (empty($recent_notifications)): ?>
                                     <div class="notification-empty">
                                         <i class="bi bi-bell-slash"></i>
-                                        <p class="mb-0">Aucune notification</p>
+                                        <p class="mb-0"><?php echo t('no_notifications'); ?></p>
                                     </div>
                                 <?php else: ?>
                                     <?php foreach ($recent_notifications as $notif): ?>
@@ -793,17 +799,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 <?php 
                                                 $time = strtotime($notif['created_at']);
                                                 $diff = time() - $time;
-                                                if ($diff < 60) echo 'À l\'instant';
-                                                elseif ($diff < 3600) echo floor($diff / 60) . ' min';
-                                                elseif ($diff < 86400) echo floor($diff / 3600) . ' h';
-                                                else echo floor($diff / 86400) . ' j';
+                                                if ($diff < 60) echo t('just_now');
+                                                elseif ($diff < 3600) echo floor($diff / 60) . ' ' . t('minutes_ago');
+                                                elseif ($diff < 86400) echo floor($diff / 3600) . ' ' . t('hours_ago');
+                                                else echo floor($diff / 86400) . ' ' . t('days_ago');
                                                 ?>
                                             </div>
                                         </a>
                                     <?php endforeach; ?>
                                     
                                     <div class="notification-dropdown-footer">
-                                        <a href="notifications.php">Voir toutes les notifications →</a>
+                                        <a href="notifications.php"><?php echo t('see_all_notifications'); ?> →</a>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -811,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </li>
                     <li class="nav-item">
                         <a class="btn btn-logout" href="../../frontend/deconnexion.php">
-                            <i class="bi bi-box-arrow-right me-1"></i>Déconnexion
+                            <i class="bi bi-box-arrow-right me-1"></i><?php echo t('logout'); ?>
                         </a>
                     </li>
                 </ul>
@@ -824,11 +830,11 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- En-tête avec bouton -->
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                 <div>
-                    <h6 class="section-title">Espace Réclamant</h6>
-                    <h1 class="main-title">Tableau de Bord</h1>
+                    <h6 class="section-title"><?php echo t('dashboard_area_claimant'); ?></h6>
+                    <h1 class="main-title"><?php echo t('dashboard_title'); ?></h1>
                 </div>
                 <a href="soumission.php" class="btn btn-primary-action">
-                    <i class="bi bi-plus-circle me-2"></i>Nouvelle Réclamation
+                    <i class="bi bi-plus-circle me-2"></i><?php echo t('new_claim'); ?>
                 </a>
             </div>
             
@@ -841,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="bi bi-chat-square-text" style="color: #0891b2;"></i>
                         </div>
                         <div>
-                            <div class="stat-card-title">Total Réclamations</div>
+                            <div class="stat-card-title"><?php echo t('total_claims'); ?></div>
                             <div class="stat-card-value"><?php echo $stats['total']; ?></div>
                         </div>
                     </div>
@@ -854,7 +860,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="bi bi-arrow-repeat" style="color: #0891b2;"></i>
                         </div>
                         <div>
-                            <div class="stat-card-title">En Cours</div>
+                            <div class="stat-card-title"><?php echo t('pending_claims'); ?></div>
                             <div class="stat-card-value"><?php echo $stats['en_cours']; ?></div>
                         </div>
                     </div>
@@ -867,7 +873,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="bi bi-check2-circle" style="color: #10b981;"></i>
                         </div>
                         <div>
-                            <div class="stat-card-title">Traitées</div>
+                            <div class="stat-card-title"><?php echo t('resolved_claims'); ?></div>
                             <div class="stat-card-value"><?php echo $stats['traite']; ?></div>
                         </div>
                     </div>
@@ -880,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="bi bi-slash-circle" style="color: #ea580c;"></i>
                         </div>
                         <div>
-                            <div class="stat-card-title">Fermées</div>
+                            <div class="stat-card-title"><?php echo t('closed_claims'); ?></div>
                             <div class="stat-card-value"><?php echo $stats['ferme']; ?></div>
                         </div>
                     </div>
@@ -890,7 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             <!-- Section Historique -->
             <div class="mb-4 mt-5">
-                <h2 class="table-section-title">Historique des Réclamations</h2>
+                <h2 class="table-section-title"><?php echo t('claim_history'); ?></h2>
             </div>
 
             <!-- Tableau des Réclamations -->
@@ -900,11 +906,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Sujet</th>
-                            <th>Catégorie</th>
-                            <th>Date</th>
-                            <th>Statut</th>
-                            <th class="text-end">Action</th>
+                            <th><?php echo t('claim_subject'); ?></th>
+                            <th><?php echo t('claim_category'); ?></th>
+                            <th><?php echo t('claim_date'); ?></th>
+                            <th><?php echo t('claim_status'); ?></th>
+                            <th class="text-end"><?php echo t('claim_action'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -912,7 +918,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <?php foreach ($reclamations as $reclamation): ?>
                                 <tr>
                                     <td class="fw-semibold" style="color: #111827;">#<?php echo $reclamation['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($reclamation['sujet'] ?? 'Sans sujet'); ?></td>
+                                    <td><?php echo htmlspecialchars($reclamation['sujet'] ?? t('claim_no_subject')); ?></td>
                                     <td>
                                         <span class="category-badge"><?php echo htmlspecialchars($reclamation['categorie_nom'] ?? '—'); ?></span>
                                     </td>
@@ -925,19 +931,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                             
                                             if ($statut === 'ferme' || $statut === 'fermee' || $statut === 'closed') {
                                                 $badge_class = 'bg-secondary-subtle text-secondary-emphasis';
-                                                $statut_label = 'Fermée';
+                                                $statut_label = t('status_closed');
                                             } elseif ($statut === 'traite' || $statut === 'traitee' || $statut === 'acceptee' || $statut === 'accepted') {
                                                 $badge_class = 'bg-primary-subtle text-primary-emphasis';
-                                                $statut_label = 'Acceptée';
+                                                $statut_label = t('status_accepted');
                                             } elseif (stripos($statut, 'attente') !== false || stripos($statut, 'info') !== false || stripos($statut, 'pending') !== false) {
                                                 $badge_class = 'bg-danger-subtle text-danger-emphasis';
-                                                $statut_label = 'En attente info';
+                                                $statut_label = t('status_awaiting_info');
                                             } elseif ($statut === 'en_cours' || $statut === 'in_progress') {
                                                 $badge_class = 'bg-success-subtle text-success-emphasis';
-                                                $statut_label = 'En cours de traitement';
+                                                $statut_label = t('status_processing');
                                             } else {
                                                 $badge_class = 'bg-success-subtle text-success-emphasis';
-                                                $statut_label = 'En cours de traitement';
+                                                $statut_label = t('status_processing');
                                             }
                                         ?>
                                         <span class="badge <?php echo $badge_class; ?> badge-custom">
@@ -946,7 +952,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </td>
                                     <td class="text-end">
                                         <a href="details.php?id=<?php echo $reclamation['id']; ?>" class="btn-action">
-                                            <i class="bi bi-eye me-1"></i>Voir
+                                            <i class="bi bi-eye me-1"></i><?php echo t('view'); ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -955,7 +961,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <tr>
                                 <td colspan="6" class="text-center py-5" style="color: #9ca3af;">
                                     <i class="bi bi-inbox fs-1 d-block mb-3" style="color: #d1d5db;"></i>
-                                    <div>Aucune réclamation trouvée</div>
+                                    <div><?php echo t('claim_none_found'); ?></div>
                                 </td>
                             </tr>
                         <?php endif; ?>

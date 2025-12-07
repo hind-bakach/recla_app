@@ -1,12 +1,13 @@
 <?php
 require_once '../includes/config.php';
+require_once '../includes/lang.php';
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo current_lang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resolve - Plateforme Intelligente de Gestion des Réclamations</title>
+    <title><?php echo t('home_title'); ?> - <?php echo t('home_subtitle'); ?></title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2314b8a6'/%3E%3Cpath d='M30 50 L45 65 L70 35' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="../css/bootstrap.min.css">
     <link rel="stylesheet" href="../css/modern.css">
@@ -14,6 +15,35 @@ require_once '../includes/config.php';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .lang-switcher {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .lang-btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .lang-btn.active {
+            background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
+            color: white;
+        }
+        .lang-btn:not(.active) {
+            color: #6b7280;
+            border-color: #e5e7eb;
+            background: white;
+        }
+        .lang-btn:not(.active):hover {
+            border-color: #14b8a6;
+            color: #14b8a6;
+        }
+    </style>
 </head>
 <body>
 
@@ -22,16 +52,24 @@ require_once '../includes/config.php';
         <div class="navbar-container">
             <a href="index.php" class="navbar-logo">
                 <i class="bi bi-check-circle-fill" style="color: #14b8a6;"></i>
-                <span class="text-gradient">Resolve</span>
+                <span class="text-gradient"><?php echo t('home_title'); ?></span>
             </a>
             
             <ul class="navbar-menu">
+                <li class="lang-switcher">
+                    <a href="<?php echo lang_url('fr'); ?>" class="lang-btn <?php echo current_lang() == 'fr' ? 'active' : ''; ?>">
+                        🇫🇷 FR
+                    </a>
+                    <a href="<?php echo lang_url('en'); ?>" class="lang-btn <?php echo current_lang() == 'en' ? 'active' : ''; ?>">
+                        🇬🇧 EN
+                    </a>
+                </li>
                 <li><a href="login.php" class="btn-outline-modern btn-sm-modern">
                     <i class="bi bi-box-arrow-in-right"></i>
-                    Se connecter
+                    <?php echo t('nav_login'); ?>
                 </a></li>
                 <li><a href="soumission.php" class="btn-primary-modern btn-sm-modern">
-                    Soumettre une Réclamation
+                    <?php echo t('nav_submit_claim'); ?>
                     <i class="bi bi-arrow-right icon-arrow"></i>
                 </a></li>
             </ul>
@@ -50,29 +88,27 @@ require_once '../includes/config.php';
             <div class="hero-content">
                 <div class="hero-badge">
                     <i class="bi bi-stars" style="color: #f59e0b;"></i>
-                    <span>Plateforme Nouvelle Génération</span>
+                    <span><?php echo t('home_hero_badge'); ?></span>
                 </div>
                 
                 <h1 class="hero-title">
-                    Simplifiez la Soumission.<br>
-                    Assurez la <span class="text-gradient">Traçabilité.</span>
+                    <?php echo t('home_hero_title_1'); ?><br>
+                    <?php echo t('home_hero_title_2'); ?> <span class="text-gradient"><?php echo t('home_hero_title_highlight'); ?></span>
                 </h1>
                 
                 <p class="hero-description">
-                    Optimisez la journée du patient du début à la fin avec le pouvoir de l'IA, 
-                    proporciondant une expérience personnalisée qui fidélise patients et impulsiona 
-                    le crescimento da sua clínica.
+                    <?php echo t('home_hero_description'); ?>
                 </p>
                 
                 <div class="hero-cta">
                     <a href="soumission.php" class="btn-modern btn-gold-modern btn-lg-modern">
                         <i class="bi bi-send-fill"></i>
-                        Déposer votre Réclamation
+                        <?php echo t('home_hero_cta_submit'); ?>
                         <i class="bi bi-arrow-right icon-arrow"></i>
                     </a>
                     <a href="login.php" class="btn-modern btn-outline-modern btn-lg-modern">
                         <i class="bi bi-person-circle"></i>
-                        Espace Utilisateur
+                        <?php echo t('home_hero_cta_login'); ?>
                     </a>
                 </div>
             </div>
@@ -136,9 +172,9 @@ require_once '../includes/config.php';
     <section class="features-section">
         <div class="features-container">
             <div class="text-center mb-6">
-                <h2 class="display-2 mb-4">Les Avantages de Notre <span class="text-gradient">Plateforme</span></h2>
+                <h2 class="display-2 mb-4"><?php echo t('home_features_title'); ?> <span class="text-gradient"><?php echo t('home_features_title_highlight'); ?></span></h2>
                 <p style="font-size: 1.25rem; color: var(--gray-600); max-width: 700px; margin: 0 auto;">
-                    Une solution complète pour simplifier la gestion de vos réclamations avec traçabilité totale
+                    <?php echo t('home_features_subtitle'); ?>
                 </p>
             </div>
             
@@ -148,10 +184,9 @@ require_once '../includes/config.php';
                     <div class="feature-icon">
                         <i class="bi bi-send-check-fill"></i>
                     </div>
-                    <h3 class="feature-title">Soumission Simplifiée</h3>
+                    <h3 class="feature-title"><?php echo t('home_feature_1_title'); ?></h3>
                     <p class="feature-description">
-                        Interface intuitive permettant de déposer une réclamation en quelques clics. 
-                        Guidage pas à pas pour ne rien oublier.
+                        <?php echo t('home_feature_1_desc'); ?>
                     </p>
                 </div>
 
@@ -159,10 +194,9 @@ require_once '../includes/config.php';
                     <div class="feature-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
                         <i class="bi bi-clock-history"></i>
                     </div>
-                    <h3 class="feature-title">Traçabilité Complète</h3>
+                    <h3 class="feature-title"><?php echo t('home_feature_2_title'); ?></h3>
                     <p class="feature-description">
-                        Suivez chaque étape du traitement en temps réel. Historique complet et transparent 
-                        de toutes les actions effectuées.
+                        <?php echo t('home_feature_2_desc'); ?>
                     </p>
                 </div>
 
@@ -170,10 +204,9 @@ require_once '../includes/config.php';
                     <div class="feature-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
                         <i class="bi bi-bell-fill"></i>
                     </div>
-                    <h3 class="feature-title">Notifications Intelligentes</h3>
+                    <h3 class="feature-title"><?php echo t('home_feature_3_title'); ?></h3>
                     <p class="feature-description">
-                        Recevez des alertes automatiques à chaque changement de statut. 
-                        Ne manquez aucune mise à jour importante.
+                        <?php echo t('home_feature_3_desc'); ?>
                     </p>
                 </div>
 
@@ -181,10 +214,9 @@ require_once '../includes/config.php';
                     <div class="feature-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
                         <i class="bi bi-person-workspace"></i>
                     </div>
-                    <h3 class="feature-title">Espace Gestionnaire</h3>
+                    <h3 class="feature-title"><?php echo t('home_feature_4_title'); ?></h3>
                     <p class="feature-description">
-                        Tableaux de bord avancés avec analytics en temps réel pour une gestion 
-                        efficace et des prises de décisions éclairées.
+                        <?php echo t('home_feature_4_desc'); ?>
                     </p>
                 </div>
             </div>
@@ -194,20 +226,19 @@ require_once '../includes/config.php';
     <!-- CTA Section -->
     <section class="section-modern" style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white;">
         <div class="container-modern text-center">
-            <h2 class="display-2 mb-4" style="color: white;">Prêt à Commencer ?</h2>
+            <h2 class="display-2 mb-4" style="color: white;"><?php echo t('home_cta_title'); ?></h2>
             <p class="mb-6" style="font-size: 1.25rem; opacity: 0.9; max-width: 600px; margin: 0 auto 2rem;">
-                Rejoignez des centaines d'organisations qui font confiance à notre plateforme 
-                pour gérer leurs réclamations efficacement.
+                <?php echo t('home_cta_description'); ?>
             </p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                 <a href="soumission.php" class="btn-modern btn-gold-modern btn-lg-modern">
                     <i class="bi bi-send-fill"></i>
-                    Soumettre une Réclamation
+                    <?php echo t('home_cta_submit'); ?>
                     <i class="bi bi-arrow-right icon-arrow"></i>
                 </a>
                 <a href="register.php" class="btn-modern btn-outline-modern btn-lg-modern" style="background: rgba(255,255,255,0.1); color: white; border-color: white;">
                     <i class="bi bi-person-plus-fill"></i>
-                    Créer un Compte
+                    <?php echo t('home_cta_register'); ?>
                 </a>
             </div>
         </div>
@@ -220,28 +251,28 @@ require_once '../includes/config.php';
                 <div>
                     <h4 style="color: white; font-weight: 700; margin-bottom: 1rem;">
                         <i class="bi bi-check-circle-fill" style="color: #2563eb;"></i>
-                        Resolve
+                        <?php echo t('home_title'); ?>
                     </h4>
-                    <p>Plateforme intelligente de gestion et traçabilité des réclamations pour organisations modernes.</p>
+                    <p><?php echo t('home_footer_description'); ?></p>
                 </div>
                 <div>
-                    <h5 style="color: white; font-weight: 600; margin-bottom: 1rem;">Liens Rapides</h5>
+                    <h5 style="color: white; font-weight: 600; margin-bottom: 1rem;"><?php echo t('home_footer_quick_links'); ?></h5>
                     <ul style="list-style: none; padding: 0;">
-                        <li style="margin-bottom: 0.5rem;"><a href="soumission.php" style="color: var(--gray-400); text-decoration: none;">Soumettre Réclamation</a></li>
-                        <li style="margin-bottom: 0.5rem;"><a href="login.php" style="color: var(--gray-400); text-decoration: none;">Se Connecter</a></li>
-                        <li style="margin-bottom: 0.5rem;"><a href="register.php" style="color: var(--gray-400); text-decoration: none;">S'Inscrire</a></li>
+                        <li style="margin-bottom: 0.5rem;"><a href="soumission.php" style="color: var(--gray-400); text-decoration: none;"><?php echo t('home_footer_submit_claim'); ?></a></li>
+                        <li style="margin-bottom: 0.5rem;"><a href="login.php" style="color: var(--gray-400); text-decoration: none;"><?php echo t('home_footer_login'); ?></a></li>
+                        <li style="margin-bottom: 0.5rem;"><a href="register.php" style="color: var(--gray-400); text-decoration: none;"><?php echo t('home_footer_register'); ?></a></li>
                     </ul>
                 </div>
                 <div>
-                    <h5 style="color: white; font-weight: 600; margin-bottom: 1rem;">Support</h5>
+                    <h5 style="color: white; font-weight: 600; margin-bottom: 1rem;"><?php echo t('home_footer_support'); ?></h5>
                     <ul style="list-style: none; padding: 0;">
-                        <li style="margin-bottom: 0.5rem;"><i class="bi bi-envelope"></i> support@resolve.app</li>
-                        <li style="margin-bottom: 0.5rem;"><i class="bi bi-telephone"></i> +212 XXX-XXXX</li>
+                        <li style="margin-bottom: 0.5rem;"><i class="bi bi-envelope"></i> <?php echo t('home_footer_email'); ?></li>
+                        <li style="margin-bottom: 0.5rem;"><i class="bi bi-telephone"></i> <?php echo t('home_footer_phone'); ?></li>
                     </ul>
                 </div>
             </div>
             <div style="border-top: 1px solid var(--gray-800); padding-top: 1.5rem; text-align: center;">
-                <p style="margin: 0; font-size: 0.875rem;">© <?php echo date('Y'); ?> Resolve. Tous droits réservés.</p>
+                <p style="margin: 0; font-size: 0.875rem;">© <?php echo date('Y'); ?> <?php echo t('home_title'); ?>. <?php echo t('home_footer_copyright'); ?>.</p>
             </div>
         </div>
     </footer>
