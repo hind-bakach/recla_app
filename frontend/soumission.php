@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
+require_once '../includes/lang.php';
 
 $error = '';
 $success = '';
@@ -55,362 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pdo = get_pdo();
 $cats = $pdo->query("SELECT * FROM categories ORDER BY nom_categorie ASC")->fetchAll();
 
-include '../includes/head.php';
+$page_title = 'Soumettre une réclamation';
+$extra_head_content = '<link rel="stylesheet" href="../css/frontend.css">';
+
+include '../includes/head_frontend.php';
 ?>
-<link rel="stylesheet" href="../css/modern.css">
 
-<style>
-    body {
-        background: linear-gradient(135deg, #cffafe 0%, #e0f2fe 50%, #e0e7ff 100%);
-        min-height: 100vh;
-    }
-    
-    .navbar-minimal {
-        background-color: #ffffff;
-        border-bottom: none;
-        box-shadow: var(--shadow-md);
-        transition: var(--transition-base);
-        animation: slideDown 0.5s ease-out;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .navbar-brand {
-        color: var(--gray-900) !important;
-        font-weight: 700;
-        font-size: 1.25rem;
-    }
-    
-    .btn-back {
-        color: var(--primary-blue) !important;
-        font-weight: 500;
-        background: transparent;
-        border: none;
-        transition: var(--transition-base);
-        text-decoration: none;
-    }
-    
-    .btn-back:hover {
-        color: var(--primary-blue-dark) !important;
-    }
-    
-    .main-content-container {
-        background: white;
-        border-radius: var(--radius-xl);
-        padding: 2.5rem;
-        box-shadow: var(--shadow-lg);
-        margin-bottom: 2rem;
-        margin-top: 2rem;
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .section-title {
-        color: var(--gray-500);
-        font-weight: 500;
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
-        animation: fadeIn 0.8s ease-out 0.2s both;
-    }
-    
-    .main-title {
-        color: var(--gray-900);
-        font-weight: 700;
-        font-size: 2rem;
-        margin-bottom: 2rem;
-        animation: fadeIn 0.8s ease-out 0.3s both;
-    }
-    
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .form-group-animated {
-        animation: fadeInUp 0.6s ease-out backwards;
-    }
-    
-    .form-group-animated:nth-child(1) { animation-delay: 0.1s; }
-    .form-group-animated:nth-child(2) { animation-delay: 0.2s; }
-    .form-group-animated:nth-child(3) { animation-delay: 0.3s; }
-    .form-group-animated:nth-child(4) { animation-delay: 0.4s; }
-    .form-group-animated:nth-child(5) { animation-delay: 0.5s; }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .form-label {
-        color: var(--gray-700);
-        font-weight: 600;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .form-label i {
-        color: var(--primary-blue);
-        font-size: 1rem;
-    }
-    
-    .form-control, .form-select {
-        border: 2px solid var(--gray-200);
-        border-radius: var(--radius-md);
-        padding: 0.875rem 1rem;
-        font-size: 0.938rem;
-        transition: all var(--transition-base);
-        background-color: var(--gray-50);
-    }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: var(--primary-blue);
-        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
-        background-color: white;
-        transform: translateY(-2px);
-    }
-    
-    .form-control:hover, .form-select:hover {
-        border-color: var(--gray-300);
-    }
-    
-    textarea.form-control {
-        resize: vertical;
-        min-height: 120px;
-    }
-    
-    .file-upload-wrapper {
-        position: relative;
-        overflow: hidden;
-        border: 2px dashed var(--gray-300);
-        border-radius: var(--radius-md);
-        padding: 2rem;
-        text-align: center;
-        transition: all var(--transition-base);
-        background: var(--gray-50);
-        cursor: pointer;
-    }
-    
-    .file-upload-wrapper:hover {
-        border-color: var(--primary-blue);
-        background: rgba(20, 184, 166, 0.05);
-    }
-    
-    .file-upload-wrapper input[type="file"] {
-        position: absolute;
-        opacity: 0;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-        cursor: pointer;
-    }
-    
-    .file-upload-icon {
-        font-size: 3rem;
-        color: var(--primary-blue);
-        margin-bottom: 1rem;
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-    
-    .btn-primary-action {
-        background: var(--gradient-blue);
-        color: white;
-        border: none;
-        padding: 0.875rem 2.5rem;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        transition: all var(--transition-base);
-        font-size: 0.938rem;
-        box-shadow: var(--shadow-lg);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .btn-primary-action::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
-        transform: translate(-50%, -50%);
-        transition: width 0.6s, height 0.6s;
-    }
-    
-    .btn-primary-action:hover::before {
-        width: 300px;
-        height: 300px;
-    }
-    
-    .btn-primary-action:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-xl);
-    }
-    
-    .btn-primary-action:active {
-        transform: translateY(0);
-    }
-    
-    .btn-secondary-action {
-        background-color: white;
-        color: var(--gray-700);
-        border: 2px solid var(--gray-300);
-        padding: 0.875rem 2rem;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        transition: all var(--transition-base);
-        font-size: 0.938rem;
-    }
-    
-    .btn-secondary-action:hover {
-        background-color: var(--gray-100);
-        border-color: var(--gray-400);
-        transform: translateY(-2px);
-    }
-    
-    .alert {
-        border-radius: var(--radius-lg);
-        border: none;
-        padding: 1.25rem 1.5rem;
-        animation: slideInDown 0.5s ease-out;
-        box-shadow: var(--shadow-md);
-    }
-    
-    @keyframes slideInDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .alert-danger {
-        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-        color: #991b1b;
-        border-left: 4px solid #ef4444;
-    }
-    
-    .form-text {
-        color: var(--gray-400);
-        font-size: 0.813rem;
-        margin-top: 0.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .required-star {
-        color: #ef4444;
-        font-weight: 700;
-    }
-</style>
-
-<script src="../js/main.js" defer></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // File upload feedback
-    const fileInput = document.querySelector('input[type="file"]');
-    const fileLabel = document.querySelector('.file-upload-text');
-    
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            if (this.files && this.files[0]) {
-                const fileName = this.files[0].name;
-                const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2);
-                fileLabel.innerHTML = `<i class="bi bi-file-earmark-check"></i> ${fileName} (${fileSize} MB)`;
-                document.querySelector('.file-upload-wrapper').style.borderColor = 'var(--success)';
-                document.querySelector('.file-upload-wrapper').style.background = 'rgba(16, 185, 129, 0.05)';
-            }
-        });
-    }
-    
-    // Form validation animation
-    const form = document.querySelector('form');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('.btn-primary-action');
-            if (submitBtn) {
-                submitBtn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Envoi en cours...';
-            }
-        });
-    }
-    
-    // Character counter for textarea
-    const textarea = document.querySelector('textarea[name="description"]');
-    if (textarea) {
-        const counter = document.createElement('small');
-        counter.className = 'form-text';
-        counter.style.float = 'right';
-        textarea.parentElement.appendChild(counter);
-        
-        textarea.addEventListener('input', function() {
-            const length = this.value.length;
-            counter.textContent = `${length} caractères`;
-            if (length > 500) {
-                counter.style.color = 'var(--warning)';
-            } else {
-                counter.style.color = 'var(--gray-400)';
-            }
-        });
-    }
-});
-</script>
-
-<style>
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-.spin {
-    animation: spin 1s linear infinite;
-}
-</style>
-
-<body>
     <!-- Navbar minimaliste -->
     <nav class="navbar navbar-minimal">
         <div class="container">
@@ -502,6 +153,62 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
+    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script src="../js/main.js"></script>
     <?php include '../includes/footer.php'; ?>
 </body>
 </html>
+    </div>
+
+    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // File upload feedback
+        const fileInput = document.querySelector('input[type="file"]');
+        const fileLabel = document.querySelector('.file-upload-text');
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const fileName = this.files[0].name;
+                    const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2);
+                    fileLabel.innerHTML = `<i class="bi bi-file-earmark-check"></i> ${fileName} (${fileSize} MB)`;
+                    document.querySelector('.file-upload-wrapper').style.borderColor = 'var(--success)';
+                    document.querySelector('.file-upload-wrapper').style.background = 'rgba(16, 185, 129, 0.05)';
+                }
+            });
+        }
+        
+        // Form validation animation
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const submitBtn = this.querySelector('.btn-primary-action');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Envoi en cours...';
+                }
+            });
+        }
+        
+        // Character counter for textarea
+        const textarea = document.querySelector('textarea[name="description"]');
+        if (textarea) {
+            const counter = document.createElement('small');
+            counter.className = 'form-text';
+            counter.style.float = 'right';
+            textarea.parentElement.appendChild(counter);
+            
+            textarea.addEventListener('input', function() {
+                const length = this.value.length;
+                counter.textContent = `${length} caractères`;
+                if (length > 500) {
+                    counter.style.color = 'var(--warning)';
+                } else {
+                    counter.style.color = 'var(--gray-400)';
+                }
+            });
+        }
+    });
+    </script>
+    <?php include '../includes/footer.php'; ?>

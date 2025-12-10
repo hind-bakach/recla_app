@@ -93,18 +93,28 @@ function get_status_badge($status) {
  * Retourne le libellé lisible du statut
  */
 function get_status_label($status) {
+    // Essayer de trouver une clé de traduction
+    $key = 'status_' . $status;
+    $translated = t($key);
+    
+    // Si la traduction existe (différente de la clé), la retourner
+    if ($translated !== $key) {
+        return $translated;
+    }
+    
+    // Fallback pour les statuts standards
     switch ($status) {
-        case 'soumis': return 'Soumis';
-        case 'en_cours': return 'En cours';
-        case 'en_attente': return 'En attente';
-        case 'resolu': return 'Résolu';
-        case 'closed': return 'Fermé';
-        case 'rejete': return 'Rejeté';
-        case 'archive': return 'Archivé';
-        case 'traite': return 'Traité';
-        case 'ferme': return 'Fermé';
-        case 'attente_info': return 'Attente d\'info';
-        default: return $status;
+        case 'soumis': return t('status_soumis');
+        case 'en_cours': return t('status_en_cours');
+        case 'en_attente': return t('status_en_attente');
+        case 'resolu': return t('status_resolu');
+        case 'closed': return t('status_closed');
+        case 'rejete': return t('status_rejete');
+        case 'archive': return t('status_archive');
+        case 'traite': return t('status_traite');
+        case 'ferme': return t('status_ferme');
+        case 'attente_info': return t('status_attente_info');
+        default: return ucfirst(str_replace('_', ' ', $status));
     }
 }
 ?>

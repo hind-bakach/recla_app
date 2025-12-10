@@ -27,6 +27,41 @@ try {
     $recent_notifications = [];
 }
 
+// Fonction pour traduire le titre de notification
+function translate_notification_title($title) {
+    if (preg_match('/^Statut changé:\s*(.+)$/i', $title, $matches)) {
+        return t('notif_status_changed_title') . ": " . trim($matches[1]);
+    }
+    if (preg_match('/^Status changed:\s*(.+)$/i', $title, $matches)) {
+        return t('notif_status_changed_title') . ": " . trim($matches[1]);
+    }
+    return $title;
+}
+
+// Fonction pour traduire le message de notification
+function translate_notification_message($message) {
+    if (preg_match('/^Le statut de votre réclamation est maintenant:\s*(.+)$/i', $message, $matches)) {
+        $status = trim($matches[1]);
+        return t('notif_status_changed_message') . ": " . get_status_label_from_french($status);
+    }
+    if (preg_match('/^Your claim status is now:\s*(.+)$/i', $message, $matches)) {
+        $status = trim($matches[1]);
+        return t('notif_status_changed_message') . ": " . get_status_label_from_french($status);
+    }
+    return $message;
+}
+
+// Fonction pour convertir un statut français en clé et traduire
+function get_status_label_from_french($french_status) {
+    $status_map = [
+        'Soumis' => 'soumis', 'En cours' => 'en_cours', 'En attente' => 'en_attente',
+        'Résolu' => 'resolu', 'Fermé' => 'ferme', 'Rejeté' => 'rejete',
+        'Archivé' => 'archive', 'Traité' => 'traite', 'Attente d\'info' => 'attente_info',
+    ];
+    $key = $status_map[$french_status] ?? strtolower(str_replace(' ', '_', $french_status));
+    return get_status_label($key);
+}
+
 // Récupérer les statistiques
 $stmt = $pdo->prepare("SELECT 
     COUNT(*) as total,
@@ -36,6 +71,12 @@ $stmt = $pdo->prepare("SELECT
     FROM reclamations WHERE user_id = ?");
 $stmt->execute([$user_id]);
 $stats = $stmt->fetch();
+
+// Convertir en entiers pour éviter NaN
+$stats['total'] = (int)($stats['total'] ?? 0);
+$stats['en_cours'] = (int)($stats['en_cours'] ?? 0);
+$stats['traite'] = (int)($stats['traite'] ?? 0);
+$stats['ferme'] = (int)($stats['ferme'] ?? 0);
 
 // Helper: détecte la première colonne existante parmi des candidats
 function detect_column($pdo, $table, $candidates) {
@@ -98,573 +139,10 @@ $reclamations = $stmt->fetchAll();
 include '../../includes/head.php';
 ?>
 <link rel="stylesheet" href="../../css/modern.css">
-
-<style>
-    body {
-        background: linear-gradient(135deg, #cffafe 0%, #e0f2fe 50%, #e0e7ff 100%);
-        min-height: 100vh;
-    }
+<link rel="stylesheet" href="../../css/reclamant.css">
     
-    .navbar-minimal {
-        background-color: #ffffff;
-        border-bottom: none;
-        box-shadow: var(--shadow-md);
-        transition: var(--transition-base);
-        animation: slideDown 0.5s ease-out;
-    }
     
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
     
-    .navbar-brand {
-        color: var(--gray-900) !important;
-        font-weight: 700;
-        font-size: 1.25rem;
-    }
-    
-    .btn-logout {
-        color: var(--primary-blue) !important;
-        font-weight: 500;
-        background: transparent;
-        border: none;
-        transition: var(--transition-base);
-    }
-    
-    .btn-logout:hover {
-        color: var(--primary-blue-dark) !important;
-    }
-    
-    .profile-icon {
-        color: var(--primary-blue);
-        transition: var(--transition-base);
-        cursor: pointer;
-        font-size: 1.2rem;
-    }
-    
-    .profile-icon:hover {
-        color: var(--primary-blue-dark);
-        transform: scale(1.1);
-    }
-    
-    .notification-icon {
-        position: relative;
-        color: var(--primary-blue);
-        font-size: 1.3rem;
-        transition: var(--transition-base);
-        cursor: pointer;
-    }
-    
-    .notification-icon:hover {
-        color: var(--primary-blue-dark);
-        transform: scale(1.1);
-    }
-    
-    .notification-badge {
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-        animation: pulse 2s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-    }
-    
-    .notification-dropdown-wrapper {
-        position: relative;
-    }
-    
-    .notification-dropdown {
-        position: absolute;
-        top: calc(100% + 15px);
-        right: -20px;
-        width: 380px;
-        background: white;
-        border-radius: var(--radius-xl);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-        opacity: 0;
-        visibility: hidden;
-        transform: translateY(-10px);
-        transition: all 0.3s ease;
-        z-index: 1000;
-        border: 1px solid var(--gray-200);
-    }
-    
-    .notification-dropdown::before {
-        content: '';
-        position: absolute;
-        top: -8px;
-        right: 30px;
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-left: 1px solid var(--gray-200);
-        border-top: 1px solid var(--gray-200);
-        transform: rotate(45deg);
-    }
-    
-    .notification-dropdown-wrapper:hover .notification-dropdown {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
-    }
-    
-    .notification-dropdown-header {
-        padding: 1rem 1.25rem;
-        border-bottom: 1px solid var(--gray-200);
-        font-weight: 700;
-        color: var(--gray-900);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .notification-dropdown-item {
-        padding: 1rem 1.25rem;
-        border-bottom: 1px solid var(--gray-100);
-        transition: var(--transition-base);
-        cursor: pointer;
-        text-decoration: none;
-        display: block;
-        color: inherit;
-    }
-    
-    .notification-dropdown-item:hover {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    }
-    
-    .notification-dropdown-item.unread {
-        background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-        border-left: 3px solid var(--primary-blue);
-    }
-    
-    .notification-dropdown-item:last-child {
-        border-bottom: none;
-    }
-    
-    .notification-dropdown-title {
-        font-weight: 600;
-        color: var(--gray-900);
-        font-size: 0.9rem;
-        margin-bottom: 0.25rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    .notification-dropdown-message {
-        font-size: 0.85rem;
-        color: var(--gray-600);
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-    
-    .notification-dropdown-time {
-        font-size: 0.75rem;
-        color: var(--gray-400);
-        margin-top: 0.25rem;
-    }
-    
-    .notification-dropdown-footer {
-        padding: 0.75rem 1.25rem;
-        text-align: center;
-        border-top: 1px solid var(--gray-200);
-    }
-    
-    .notification-dropdown-footer a {
-        color: var(--primary-blue);
-        font-weight: 600;
-        font-size: 0.9rem;
-        text-decoration: none;
-        transition: var(--transition-base);
-    }
-    
-    .notification-dropdown-footer a:hover {
-        color: var(--primary-blue-dark);
-    }
-    
-    .notification-empty {
-        padding: 2rem 1.25rem;
-        text-align: center;
-        color: var(--gray-400);
-    }
-    
-    .notification-empty i {
-        font-size: 2.5rem;
-        color: var(--gray-300);
-        margin-bottom: 0.5rem;
-    }
-    
-    .main-content-container {
-        background: white;
-        border-radius: var(--radius-xl);
-        padding: 2.5rem;
-        box-shadow: var(--shadow-lg);
-        margin-bottom: 2rem;
-        margin-top: 2rem;
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .section-title {
-        color: var(--gray-500);
-        font-weight: 500;
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
-        animation: fadeIn 0.8s ease-out 0.2s both;
-    }
-    
-    .main-title {
-        color: var(--gray-900);
-        font-weight: 700;
-        font-size: 2rem;
-        margin-bottom: 2rem;
-        animation: fadeIn 0.8s ease-out 0.3s both;
-    }
-    
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .stat-card {
-        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-        border: 1px solid var(--gray-200);
-        border-radius: var(--radius-xl);
-        padding: 1.75rem 1.5rem;
-        text-align: left;
-        transition: all var(--transition-base);
-        box-shadow: var(--shadow-sm);
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-        animation: scaleIn 0.5s ease-out backwards;
-    }
-    
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, transparent 100%);
-        opacity: 0;
-        transition: var(--transition-base);
-    }
-    
-    .stat-card:hover::before {
-        opacity: 1;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: var(--shadow-xl);
-        border-color: var(--primary-blue);
-    }
-    
-    @keyframes scaleIn {
-        from {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-    
-    .stat-card:nth-child(1) { animation-delay: 0.1s; }
-    .stat-card:nth-child(2) { animation-delay: 0.2s; }
-    .stat-card:nth-child(3) { animation-delay: 0.3s; }
-    .stat-card:nth-child(4) { animation-delay: 0.4s; }
-    
-    .stat-card-icon {
-        width: 48px;
-        height: 48px;
-        margin: 0;
-        border-radius: var(--radius-lg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        flex-shrink: 0;
-        transition: var(--transition-base);
-    }
-    
-    .stat-card:hover .stat-card-icon {
-        transform: rotate(5deg) scale(1.1);
-    }
-    
-    .stat-card-title {
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--gray-400);
-        margin-bottom: 0.5rem;
-        line-height: 1.2;
-    }
-    
-    .stat-card-value {
-        font-size: 2rem;
-        font-weight: 700;
-        line-height: 1;
-        color: var(--gray-900);
-        transition: var(--transition-base);
-    }
-    
-    .stat-card:hover .stat-card-value {
-        color: var(--primary-blue);
-    }
-    
-    .btn-primary-action {
-        background: var(--gradient-blue);
-        color: white;
-        border: none;
-        padding: 0.75rem 1.75rem;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        transition: all var(--transition-base);
-        box-shadow: var(--shadow-lg);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .btn-primary-action::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
-        transform: translate(-50%, -50%);
-        transition: width 0.6s, height 0.6s;
-    }
-    
-    .btn-primary-action:hover::before {
-        width: 300px;
-        height: 300px;
-    }
-    
-    .btn-primary-action:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-2xl);
-    }
-    
-    .table-container {
-        background: white;
-        border: 1px solid var(--gray-200);
-        border-radius: var(--radius-xl);
-        overflow: hidden;
-        box-shadow: var(--shadow-md);
-        animation: fadeInUp 0.6s ease-out 0.5s backwards;
-    }
-    
-    .table-minimal {
-        margin-bottom: 0;
-    }
-    
-    .table-minimal thead {
-        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-    }
-    
-    .table-minimal thead th {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--gray-500);
-        border-bottom: 2px solid var(--gray-200);
-        padding: 1rem;
-    }
-    
-    .table-minimal tbody td {
-        padding: 1rem;
-        vertical-align: middle;
-        color: var(--gray-700);
-        border-bottom: 1px solid var(--gray-100);
-        transition: var(--transition-fast);
-    }
-    
-    .table-minimal tbody tr {
-        transition: var(--transition-base);
-    }
-    
-    .table-minimal tbody tr:hover {
-        background: linear-gradient(135deg, rgba(20, 184, 166, 0.03) 0%, rgba(14, 165, 233, 0.03) 100%);
-        transform: scale(1.01);
-    }
-    
-    .table-minimal tbody tr:last-child td {
-        border-bottom: none;
-    }
-    
-    .badge-custom {
-        padding: 0.5rem 1rem;
-        border-radius: var(--radius-full);
-        font-size: 0.813rem;
-        font-weight: 600;
-        transition: var(--transition-base);
-    }
-    
-    .badge-custom:hover {
-        transform: scale(1.05);
-    }
-    
-    .category-badge {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        color: #1e40af;
-        border: none;
-        padding: 0.375rem 0.875rem;
-        border-radius: var(--radius-md);
-        font-size: 0.875rem;
-        font-weight: 600;
-        transition: var(--transition-base);
-    }
-    
-    .category-badge:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .btn-action {
-        background: var(--gradient-blue);
-        color: white;
-        border: none;
-        padding: 0.5rem 1.25rem;
-        border-radius: var(--radius-md);
-        font-size: 0.875rem;
-        font-weight: 600;
-        transition: all var(--transition-base);
-        text-decoration: none;
-        display: inline-block;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .btn-action::after {
-        content: '→';
-        position: absolute;
-        right: -20px;
-        opacity: 0;
-        transition: var(--transition-base);
-    }
-    
-    .btn-action:hover::after {
-        right: 10px;
-        opacity: 1;
-    }
-    
-    .btn-action:hover {
-        padding-right: 2rem;
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-    }
-    
-    .table-section-title {
-        color: var(--gray-900);
-        font-weight: 700;
-        font-size: 1.25rem;
-        margin-bottom: 1.5rem;
-        position: relative;
-        padding-left: 1rem;
-    }
-    
-    .table-section-title::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 4px;
-        height: 70%;
-        background: var(--gradient-blue);
-        border-radius: var(--radius-sm);
-    }
-    
-    /* Loading skeleton animation */
-    @keyframes shimmer {
-        0% { background-position: -1000px 0; }
-        100% { background-position: 1000px 0; }
-    }
-    
-    .skeleton {
-        animation: shimmer 2s infinite;
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 1000px 100%;
-    }
-    
-    /* Pulse animation for new items */
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-    
-    .pulse {
-        animation: pulse 2s ease-in-out infinite;
-    }
-    
-    /* Empty state styling */
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: var(--gray-400);
-    }
-    
-    .empty-state i {
-        font-size: 4rem;
-        color: var(--gray-300);
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-</style>
-
 <script src="../../js/main.js" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -684,6 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 30);
     });
+});
     
     // Add tooltip to table rows
     const tableRows = document.querySelectorAll('.table-minimal tbody tr');
@@ -789,10 +268,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                            class="notification-dropdown-item <?php echo $notif['is_read'] == 0 ? 'unread' : ''; ?>">
                                             <div class="notification-dropdown-title">
                                                 <i class="bi bi-<?php echo $notif['type'] == 'nouveau_commentaire' ? 'chat-dots' : 'arrow-repeat'; ?> me-1"></i>
-                                                <?php echo htmlspecialchars($notif['titre']); ?>
+                                                <?php echo htmlspecialchars(translate_notification_title($notif['titre'])); ?>
                                             </div>
                                             <div class="notification-dropdown-message">
-                                                <?php echo htmlspecialchars($notif['message']); ?>
+                                                <?php echo htmlspecialchars(translate_notification_message($notif['message'])); ?>
                                             </div>
                                             <div class="notification-dropdown-time">
                                                 <i class="bi bi-clock me-1"></i>

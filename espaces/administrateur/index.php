@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/config.php';
+require_once '../../includes/lang.php';
 require_once '../../includes/functions.php';
 
 require_role('administrateur');
@@ -305,9 +306,9 @@ include '../../includes/head.php';
                                         <?php foreach ($latest_reclamations as $reclamation): ?>
                                             <tr style="border-bottom: 1px solid #e5e7eb;">
                                                 <td class="ps-4 fw-bold" style="color: #374151;">#<?php echo htmlspecialchars($reclamation['reclam_id'] ?? $reclamation['id'] ?? $reclamation['reclamation_id'] ?? ''); ?></td>
-                                                <td style="color: #111827;"><?php echo htmlspecialchars($reclamation['user_name'] ?? $reclamation['nom'] ?? $reclamation['name'] ?? '—'); ?></td>
-                                                <td style="color: #374151;"><?php echo htmlspecialchars($reclamation['objet'] ?? $reclamation['sujet'] ?? ''); ?></td>
-                                                <td><span class="badge" style="background-color: #f3f4f6; color: #374151; font-weight: 500;"><?php echo htmlspecialchars($reclamation['category_nom'] ?? $reclamation['categorie_nom'] ?? $reclamation['categorie'] ?? '—'); ?></span></td>
+                                                <td style="color: #111827;"><?php echo htmlspecialchars(html_entity_decode($reclamation['user_name'] ?? $reclamation['nom'] ?? $reclamation['name'] ?? '—', ENT_QUOTES, 'UTF-8')); ?></td>
+                                                <td style="color: #374151;"><?php echo htmlspecialchars(html_entity_decode($reclamation['objet'] ?? $reclamation['sujet'] ?? '', ENT_QUOTES, 'UTF-8')); ?></td>
+                                                <td><span class="badge" style="background-color: #f3f4f6; color: #374151; font-weight: 500;"><?php echo htmlspecialchars(html_entity_decode($reclamation['category_nom'] ?? $reclamation['categorie_nom'] ?? $reclamation['categorie'] ?? '—', ENT_QUOTES, 'UTF-8')); ?></span></td>
                                                 <td style="color: #6b7280;"><?php echo !empty($reclamation['date_soumission'] ?? $reclamation['created_at'] ?? null) ? format_date($reclamation['date_soumission'] ?? $reclamation['created_at']) : ''; ?></td>
                                                 <td>
                                                     <span class="badge rounded-pill <?php echo get_status_badge($reclamation['statut'] ?? $reclamation['status'] ?? ''); ?>">
@@ -331,39 +332,8 @@ include '../../includes/head.php';
     </div>
 
     <?php include '../../includes/footer.php'; ?>
-    <?php include '../../includes/admin_styles.php'; ?>
-    
-    <style>
-        body { background-color: #f5f5f5; }
-        .sidebar-link {
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-        .sidebar-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #fff !important;
-            border-left: 4px solid #14b8a6;
-        }
-        
-        /* Animation pour les cartes statistiques */
-        .col-md-3 .card {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .col-md-3 .card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            animation: shimmer 3s infinite;
-        }
-    </style>
-    
+    <link rel="stylesheet" href="../../css/admin.css">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../../js/admin-animations.js"></script>
     <script>

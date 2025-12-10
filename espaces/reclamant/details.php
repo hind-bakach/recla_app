@@ -279,335 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
 include '../../includes/head.php';
 ?>
 <link rel="stylesheet" href="../../css/modern.css">
-
-<style>
-    body {
-        background: linear-gradient(135deg, #cffafe 0%, #e0f2fe 50%, #e0e7ff 100%);
-        min-height: 100vh;
-    }
-    
-    .navbar-minimal {
-        background-color: #ffffff;
-        border-bottom: none;
-        box-shadow: var(--shadow-md);
-        transition: var(--transition-base);
-        animation: slideDown 0.5s ease-out;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .navbar-brand {
-        color: var(--gray-900) !important;
-        font-weight: 700;
-        font-size: 1.25rem;
-    }
-    
-    .btn-logout {
-        color: var(--primary-blue) !important;
-        font-weight: 500;
-        background: transparent;
-        border: none;
-        transition: var(--transition-base);
-    }
-    
-    .btn-logout:hover {
-        color: var(--primary-blue-dark) !important;
-    }
-    
-    .main-content-container {
-        background: white;
-        border-radius: var(--radius-xl);
-        padding: 2.5rem;
-        box-shadow: var(--shadow-lg);
-        margin-bottom: 2rem;
-        margin-top: 2rem;
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .section-title {
-        color: var(--gray-500);
-        font-weight: 500;
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .main-title {
-        color: var(--gray-900);
-        font-weight: 700;
-        font-size: 2rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    .btn-back {
-        background: var(--gradient-blue);
-        color: white;
-        border: none;
-        padding: 0.625rem 1.5rem;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        transition: all var(--transition-base);
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        box-shadow: var(--shadow-md);
-    }
-    
-    .btn-back:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-xl);
-        color: white;
-    }
-    
-    .detail-card {
-        background: white;
-        border: 1px solid var(--gray-200);
-        border-radius: var(--radius-xl);
-        padding: 2.5rem;
-        box-shadow: var(--shadow-md);
-        margin-bottom: 2rem;
-        animation: fadeInUp 0.6s ease-out;
-        transition: var(--transition-base);
-    }
-    
-    .detail-card:hover {
-        box-shadow: var(--shadow-xl);
-        transform: translateY(-2px);
-    }
-    
-    .badge-status {
-        padding: 0.5rem 1.25rem;
-        border-radius: var(--radius-full);
-        font-size: 0.875rem;
-        font-weight: 600;
-    }
-    
-    .info-meta {
-        color: var(--gray-500);
-        font-size: 0.875rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-right: 1.5rem;
-    }
-    
-    .info-meta i {
-        color: var(--primary-blue);
-    }
-    
-    .description-box {
-        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-        border: 2px solid var(--gray-200);
-        border-radius: var(--radius-lg);
-        padding: 2rem;
-        margin: 2rem 0;
-        transition: var(--transition-base);
-        line-height: 1.8;
-    }
-    
-    .description-box:hover {
-        border-color: var(--primary-blue);
-        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
-    }
-    
-    .attachment-btn {
-        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-        color: var(--gray-700);
-        border: 1px solid var(--gray-300);
-        border-radius: var(--radius-md);
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
-        transition: all var(--transition-base);
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .attachment-btn:hover {
-        background: var(--gradient-blue);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .comment-item {
-        animation: slideInLeft 0.5s ease-out backwards;
-        margin-bottom: 2rem;
-    }
-    
-    @keyframes slideInLeft {
-        from {
-            opacity: 0;
-            transform: translateX(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-    
-    .comment-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        color: white;
-        font-size: 1.25rem;
-        box-shadow: var(--shadow-md);
-        transition: var(--transition-base);
-    }
-    
-    .comment-item:hover .comment-avatar {
-        transform: scale(1.1) rotate(5deg);
-    }
-    
-    .comment-bubble {
-        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-        border: 1px solid var(--gray-200);
-        border-radius: var(--radius-lg);
-        padding: 1.5rem;
-        transition: var(--transition-base);
-        position: relative;
-        line-height: 1.7;
-    }
-    
-    .comment-bubble::before {
-        content: '';
-        position: absolute;
-        left: -8px;
-        top: 20px;
-        width: 0;
-        height: 0;
-        border-top: 8px solid transparent;
-        border-bottom: 8px solid transparent;
-        border-right: 8px solid var(--gray-200);
-    }
-    
-    .comment-item:hover .comment-bubble {
-        box-shadow: var(--shadow-lg);
-        transform: translateX(5px);
-    }
-    
-    .role-badge {
-        background: var(--gradient-blue);
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: var(--radius-full);
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    
-    .comment-form textarea {
-        border: 2px solid var(--gray-200);
-        border-radius: var(--radius-lg);
-        padding: 1rem;
-        transition: all var(--transition-base);
-        resize: vertical;
-        min-height: 120px;
-    }
-    
-    .comment-form textarea:focus {
-        border-color: var(--primary-blue);
-        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
-        transform: translateY(-2px);
-    }
-    
-    .btn-send {
-        background: var(--gradient-blue);
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        transition: all var(--transition-base);
-        box-shadow: var(--shadow-lg);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .btn-send::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
-        transform: translate(-50%, -50%);
-        transition: width 0.6s, height 0.6s;
-    }
-    
-    .btn-send:hover::before {
-        width: 300px;
-        height: 300px;
-    }
-    
-    .btn-send:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-2xl);
-    }
-    
-    .section-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 2rem;
-        padding-bottom: 1.25rem;
-        border-bottom: 2px solid var(--gray-200);
-    }
-    
-    .section-header i {
-        font-size: 1.5rem;
-        color: var(--primary-blue);
-        animation: bounce 2s ease-in-out infinite;
-    }
-    
-    @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-5px); }
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: var(--gray-400);
-    }
-    
-    .empty-state i {
-        font-size: 4rem;
-        color: var(--gray-300);
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-</style>
+<link rel="stylesheet" href="../../css/reclamant.css">
 
 <script src="../../js/main.js" defer></script>
 <script>
@@ -641,16 +313,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-.spin {
-    animation: spin 1s linear infinite;
-}
-</style>
-
 <body>
     <!-- Navbar Minimaliste -->
     <nav class="navbar navbar-minimal navbar-expand-lg">
@@ -664,11 +326,11 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item me-3">
-                        <span style="color: #6b7280;">Bonjour, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
+                        <span style="color: #6b7280;"><?php echo t('nav_hello'); ?>, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
                     </li>
                     <li class="nav-item">
                         <a class="btn btn-logout" href="../../frontend/deconnexion.php">
-                            <i class="bi bi-box-arrow-right me-1"></i>Déconnexion
+                            <i class="bi bi-box-arrow-right me-1"></i><?php echo t('nav_logout'); ?>
                         </a>
                     </li>
                 </ul>
@@ -725,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                     
-                <h3 class="fw-bold mb-3" style="color: var(--gray-900);"><?php echo htmlspecialchars($reclamation['sujet']); ?></h3>
+                <h3 class="fw-bold mb-3" style="color: var(--gray-900);"><?php echo htmlspecialchars(html_entity_decode($reclamation['sujet'], ENT_QUOTES, 'UTF-8')); ?></h3>
                 
                 <div class="mb-4 d-flex gap-4">
                     <span class="info-meta">
@@ -734,12 +396,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     </span>
                     <span class="info-meta">
                         <i class="bi bi-tag"></i>
-                        <?php echo htmlspecialchars($reclamation['categorie_nom'] ?? t('claim_category')); ?>
+                        <?php echo htmlspecialchars(html_entity_decode($reclamation['categorie_nom'] ?? t('claim_category'), ENT_QUOTES, 'UTF-8')); ?>
                     </span>
                 </div>
 
                 <div class="description-box">
-                    <p class="mb-0" style="white-space: pre-line; color: var(--gray-700);"><?php echo htmlspecialchars($reclamation['description']); ?></p>
+                    <p class="mb-0" style="white-space: pre-line; color: var(--gray-700);"><?php echo htmlspecialchars(html_entity_decode($reclamation['description'], ENT_QUOTES, 'UTF-8')); ?></p>
                 </div>
 
                 <?php if (count($attachments) > 0): ?>
@@ -778,12 +440,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="comment-bubble">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <div>
-                                                <strong style="color: var(--gray-900);"><?php echo htmlspecialchars($comment['user_name']); ?></strong>
+                                                <strong style="color: var(--gray-900);"><?php echo htmlspecialchars(html_entity_decode($comment['user_name'], ENT_QUOTES, 'UTF-8')); ?></strong>
                                                 <span class="role-badge ms-2"><?php echo $comment['user_role']; ?></span>
                                             </div>
                                             <small class="text-muted"><?php echo format_date($comment['created_at']); ?></small>
                                         </div>
-                                        <p class="mb-0" style="color: var(--gray-700);"><?php echo nl2br(htmlspecialchars($comment['comment'])); ?></p>
+                                        <p class="mb-0" style="color: var(--gray-700);"><?php echo nl2br(htmlspecialchars(html_entity_decode($comment['comment'], ENT_QUOTES, 'UTF-8'))); ?></p>
                                     </div>
                                 </div>
                             </div>

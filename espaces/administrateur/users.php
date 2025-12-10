@@ -290,7 +290,7 @@ include '../../includes/head.php';
     </div>
 
     <?php include '../../includes/footer.php'; ?>
-    <?php include '../../includes/admin_styles.php'; ?>
+    <link rel="stylesheet" href="../../css/admin.css">
 </body>
 </html>
 

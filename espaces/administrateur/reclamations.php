@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/config.php';
+require_once '../../includes/lang.php';
 require_once '../../includes/functions.php';
 
 require_role('administrateur');
@@ -243,7 +244,7 @@ include '../../includes/head.php';
         </div>
     </div>
 
-    <?php include '../../includes/admin_styles.php'; ?>
+    <link rel="stylesheet" href="../../css/admin.css">
 
     <!-- Modal Modification Statut -->
     <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">

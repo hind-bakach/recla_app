@@ -2,13 +2,16 @@
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
 require_once '../includes/email_config.php';
+require_once '../includes/lang.php';
+
+$page_title = 'Mot de passe oublié';
+$include_auth_css = true;
 
 $success = '';
 $error = '';
 $step = 'email'; // email, code, password
 
-// Mode de développement (afficher le code) ou production (envoyer l'email)
-define('DEV_MODE', false); // Mode PRODUCTION activé - emails envoyés automatiquement
+// DEV_MODE est défini dans .env (true = afficher le code, false = envoyer l'email)
 
 // Étape 1: Vérifier l'email
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email_submit'])) {
@@ -138,210 +141,14 @@ if (isset($_SESSION['code_verified']) && !isset($_POST['code_submit']) && !isset
     $step = 'password';
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mot de passe oublié - Resolve</title>
-    <link rel="stylesheet" href="../css/bootstrap.min.css">
-    <link rel="stylesheet" href="../css/modern.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
-            font-family: 'Inter', sans-serif;
-            padding: 2rem 1rem;
-        }
-        
-        .reset-container {
-            background: white;
-            border-radius: 1.5rem;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-            max-width: 480px;
-            width: 100%;
-            padding: 3rem 2.5rem;
-            animation: fadeInUp 0.5s ease-out;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .reset-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .reset-icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-        }
-        
-        .reset-icon i {
-            font-size: 2rem;
-            color: white;
-        }
-        
-        .reset-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #111827;
-            margin-bottom: 0.5rem;
-        }
-        
-        .reset-subtitle {
-            color: #6b7280;
-            font-size: 0.938rem;
-        }
-        
-        .form-label-modern {
-            font-weight: 600;
-            color: #374151;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-        
-        .form-control-modern {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            padding-left: 3rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            transition: all 0.2s;
-        }
-        
-        .form-control-modern:focus {
-            outline: none;
-            border-color: #14b8a6;
-            box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
-        }
-        
-        .input-with-icon {
-            position: relative;
-        }
-        
-        .input-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-            font-size: 1.125rem;
-        }
-        
-        .btn-reset {
-            width: 100%;
-            padding: 0.875rem;
-            background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
-            color: white;
-            border: none;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .btn-reset:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(20, 184, 166, 0.3);
-        }
-        
-        .alert-modern {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .alert-danger-modern {
-            background: #fef2f2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-        
-        .alert-success-modern {
-            background: #f0fdf4;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-        
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #6b7280;
-            text-decoration: none;
-            font-weight: 500;
-            margin-top: 1.5rem;
-            transition: color 0.2s;
-        }
-        
-        .back-link:hover {
-            color: #111827;
-        }
-        
-        .code-input {
-            text-align: center;
-            font-size: 1.5rem;
-            letter-spacing: 0.5rem;
-            font-weight: 600;
-        }
-        
-        .success-icon {
-            font-size: 3rem;
-            color: #10b981;
-            margin-bottom: 1rem;
-        }
-        
-        .step-indicator {
-            display: flex;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .step-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #e5e7eb;
-            transition: all 0.3s;
-        }
-        
-        .step-dot.active {
-            width: 24px;
-            border-radius: 4px;
-            background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
-        }
-    </style>
-</head>
-<body>
+<?php include '../includes/head_frontend.php'; ?>
+    <div class="bokeh-background">
+        <div class="bokeh-circle bokeh-1"></div>
+        <div class="bokeh-circle bokeh-2"></div>
+        <div class="bokeh-circle bokeh-3"></div>
+        <div class="bokeh-circle bokeh-4"></div>
+    </div>
+
     <div class="reset-container">
         <?php if ($step === 'email'): ?>
             <div class="reset-header">

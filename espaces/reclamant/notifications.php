@@ -79,284 +79,60 @@ try {
     $unread_count = 0;
 }
 
+// Fonction pour traduire le titre de notification
+function translate_notification_title($title) {
+    // Détecter le pattern: "Statut changé: [sujet]"
+    if (preg_match('/^Statut changé:\s*(.+)$/i', $title, $matches)) {
+        $subject = trim($matches[1]);
+        return t('notif_status_changed_title') . ": " . $subject;
+    }
+    // Détecter le pattern anglais: "Status changed: [subject]"
+    if (preg_match('/^Status changed:\s*(.+)$/i', $title, $matches)) {
+        $subject = trim($matches[1]);
+        return t('notif_status_changed_title') . ": " . $subject;
+    }
+    // Retourner le titre original si aucun pattern détecté
+    return $title;
+}
+
+// Fonction pour traduire les messages de notification
+function translate_notification_message($message) {
+    // Détecter le pattern: "Le statut de votre réclamation est maintenant: [statut]"
+    if (preg_match('/^Le statut de votre réclamation est maintenant:\s*(.+)$/i', $message, $matches)) {
+        $status = trim($matches[1]);
+        return t('notif_status_changed_message') . ": " . get_status_label_from_french($status);
+    }
+    // Détecter le pattern anglais: "Your claim status is now: [status]"
+    if (preg_match('/^Your claim status is now:\s*(.+)$/i', $message, $matches)) {
+        $status = trim($matches[1]);
+        return t('notif_status_changed_message') . ": " . get_status_label_from_french($status);
+    }
+    // Retourner le message original si aucun pattern détecté
+    return $message;
+}
+
+// Fonction pour convertir un statut français en clé et traduire
+function get_status_label_from_french($french_status) {
+    $status_map = [
+        'Soumis' => 'soumis',
+        'En cours' => 'en_cours',
+        'En attente' => 'en_attente',
+        'Résolu' => 'resolu',
+        'Fermé' => 'ferme',
+        'Rejeté' => 'rejete',
+        'Archivé' => 'archive',
+        'Traité' => 'traite',
+        'Attente d\'info' => 'attente_info',
+    ];
+    
+    $key = $status_map[$french_status] ?? strtolower(str_replace(' ', '_', $french_status));
+    return get_status_label($key);
+}
+
 include '../../includes/head.php';
 ?>
 <link rel="stylesheet" href="../../css/modern.css">
-
-<style>
-    body {
-        background: linear-gradient(135deg, #cffafe 0%, #e0f2fe 50%, #e0e7ff 100%);
-        min-height: 100vh;
-    }
-    
-    .navbar-minimal {
-        background-color: #ffffff;
-        border-bottom: none;
-        box-shadow: var(--shadow-md);
-        transition: var(--transition-base);
-        animation: slideDown 0.5s ease-out;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .navbar-brand {
-        color: var(--gray-900) !important;
-        font-weight: 700;
-        font-size: 1.25rem;
-    }
-    
-    .btn-logout {
-        color: var(--primary-blue) !important;
-        font-weight: 500;
-        background: transparent;
-        border: none;
-        transition: var(--transition-base);
-    }
-    
-    .btn-logout:hover {
-        color: var(--primary-blue-dark) !important;
-    }
-    
-    .profile-icon {
-        color: var(--primary-blue);
-        transition: var(--transition-base);
-        cursor: pointer;
-        font-size: 1.2rem;
-    }
-    
-    .profile-icon:hover {
-        color: var(--primary-blue-dark);
-        transform: scale(1.1);
-    }
-    
-    .notification-icon {
-        position: relative;
-        color: var(--primary-blue);
-        font-size: 1.3rem;
-        transition: var(--transition-base);
-        cursor: pointer;
-    }
-    
-    .notification-icon:hover {
-        color: var(--primary-blue-dark);
-        transform: scale(1.1);
-    }
-    
-    .notification-badge {
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-    }
-    
-    .main-content-container {
-        background: white;
-        border-radius: var(--radius-xl);
-        padding: 2.5rem;
-        box-shadow: var(--shadow-lg);
-        margin-bottom: 2rem;
-        margin-top: 2rem;
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .section-title {
-        color: var(--gray-500);
-        font-weight: 500;
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .main-title {
-        color: var(--gray-900);
-        font-weight: 700;
-        font-size: 2rem;
-        margin-bottom: 2rem;
-    }
-    
-    .notification-card {
-        background: white;
-        border: 2px solid var(--gray-200);
-        border-radius: var(--radius-lg);
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        transition: all var(--transition-base);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .notification-card.unread {
-        background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-        border-color: var(--primary-blue);
-    }
-    
-    .notification-card.unread::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 4px;
-        height: 100%;
-        background: var(--gradient-blue);
-    }
-    
-    .notification-card:hover {
-        transform: translateX(5px);
-        box-shadow: var(--shadow-lg);
-    }
-    
-    .notification-icon-type {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        flex-shrink: 0;
-    }
-    
-    .notification-icon-type.status {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        color: #1e40af;
-    }
-    
-    .notification-icon-type.comment {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        color: #065f46;
-    }
-    
-    .notification-title {
-        font-weight: 700;
-        color: var(--gray-900);
-        margin-bottom: 0.25rem;
-    }
-    
-    .notification-message {
-        color: var(--gray-600);
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .notification-time {
-        color: var(--gray-400);
-        font-size: 0.85rem;
-    }
-    
-    .notification-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
-    }
-    
-    .btn-notification {
-        padding: 0.5rem 1rem;
-        border-radius: var(--radius-md);
-        font-size: 0.875rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: var(--transition-base);
-    }
-    
-    .btn-view {
-        background: var(--gradient-blue);
-        color: white;
-        border: none;
-    }
-    
-    .btn-view:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-    }
-    
-    .btn-mark-read {
-        background: var(--gray-100);
-        color: var(--gray-700);
-        border: 2px solid var(--gray-200);
-    }
-    
-    .btn-mark-read:hover {
-        background: var(--gray-200);
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        color: var(--gray-400);
-    }
-    
-    .empty-state i {
-        font-size: 5rem;
-        color: var(--gray-300);
-        margin-bottom: 1rem;
-    }
-    
-    .btn-secondary-action {
-        background: var(--gray-100);
-        color: var(--gray-700);
-        border: 2px solid var(--gray-200);
-        padding: 0.75rem 1.75rem;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        transition: all var(--transition-base);
-        text-decoration: none;
-        display: inline-block;
-    }
-    
-    .btn-secondary-action:hover {
-        background: var(--gray-200);
-        border-color: var(--gray-300);
-        color: var(--gray-900);
-        transform: translateY(-2px);
-    }
-    
-    .btn-primary-action {
-        background: var(--gradient-blue);
-        color: white;
-        border: none;
-        padding: 0.75rem 1.75rem;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        transition: all var(--transition-base);
-        box-shadow: var(--shadow-lg);
-        text-decoration: none;
-        display: inline-block;
-    }
-    
-    .btn-primary-action:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-2xl);
-    }
-</style>
+<link rel="stylesheet" href="../../css/reclamant.css">
 
 <body>
     <!-- Navbar Minimaliste -->
@@ -371,7 +147,7 @@ include '../../includes/head.php';
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item me-3">
-                        <span style="color: #6b7280;">Bonjour, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
+                        <span style="color: #6b7280;"><?php echo t('nav_hello'); ?>, <strong style="color: #111827;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong></span>
                     </li>
                     <li class="nav-item me-3">
                         <a href="profil.php" class="text-decoration-none" title="Mon profil">
@@ -388,7 +164,7 @@ include '../../includes/head.php';
                     </li>
                     <li class="nav-item">
                         <a class="btn btn-logout" href="../../frontend/deconnexion.php">
-                            <i class="bi bi-box-arrow-right me-1"></i>Déconnexion
+                            <i class="bi bi-box-arrow-right me-1"></i><?php echo t('nav_logout'); ?>
                         </a>
                     </li>
                 </ul>
@@ -431,8 +207,8 @@ include '../../includes/head.php';
                                 <i class="bi bi-<?php echo $notif['type'] == 'nouveau_commentaire' ? 'chat-dots' : 'arrow-repeat'; ?>"></i>
                             </div>
                             <div class="flex-grow-1">
-                                <div class="notification-title"><?php echo htmlspecialchars($notif['titre']); ?></div>
-                                <div class="notification-message"><?php echo htmlspecialchars($notif['message']); ?></div>
+                                <div class="notification-title"><?php echo htmlspecialchars(translate_notification_title($notif['titre'])); ?></div>
+                                <div class="notification-message"><?php echo htmlspecialchars(translate_notification_message($notif['message'])); ?></div>
                                 <div class="notification-time">
                                     <i class="bi bi-clock me-1"></i>
                                     <?php 
