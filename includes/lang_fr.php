@@ -279,6 +279,15 @@ return [
     'no_results' => 'Aucun résultat',
     'loading' => 'Chargement...',
     
+    // Suppression
+    'delete' => 'Supprimer',
+    'delete_confirm' => 'Êtes-vous sûr de vouloir supprimer cette réclamation ? Cette action est irréversible.',
+    'claim_deleted_success' => 'Réclamation supprimée avec succès',
+    'error_delete_failed' => 'Erreur lors de la suppression',
+    'error_claim_not_found' => 'Réclamation introuvable',
+    'error_unauthorized' => 'Vous n\'êtes pas autorisé à supprimer cette réclamation',
+    'error_invalid_request' => 'Requête invalide',
+    
     // Footer
     'footer_rights' => 'Tous droits réservés',
     'footer_contact' => 'Contact',

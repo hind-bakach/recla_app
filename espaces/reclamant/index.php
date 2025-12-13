@@ -194,6 +194,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 const searchPlaceholder = <?php echo json_encode(t('search_claim')); ?>;
+const deleteConfirmMsg = <?php echo json_encode(t('delete_confirm') ?? 'Êtes-vous sûr de vouloir supprimer cette réclamation ? Cette action est irréversible.'); ?>;
+
+function confirmDelete(id) {
+    if (confirm(deleteConfirmMsg)) {
+        window.location.href = 'delete_reclamation.php?id=' + id;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Real-time search filter
     const searchInput = document.createElement('input');
@@ -306,6 +314,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="container pb-5">
         <div class="main-content-container">
+            <!-- Messages de succès/erreur -->
+            <?php if (isset($_SESSION['success'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i><?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i><?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            
             <!-- En-tête avec bouton -->
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                 <div>
@@ -430,9 +452,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <a href="details.php?id=<?php echo $reclamation['id']; ?>" class="btn-action">
+                                        <a href="details.php?id=<?php echo $reclamation['id']; ?>" class="btn-action me-2">
                                             <i class="bi bi-eye me-1"></i><?php echo t('view'); ?>
                                         </a>
+                                        <button onclick="confirmDelete(<?php echo $reclamation['id']; ?>)" class="btn-action btn-danger-action" title="<?php echo t('delete'); ?>">
+                                            <i class="bi bi-trash me-1"></i><?php echo t('delete'); ?>
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

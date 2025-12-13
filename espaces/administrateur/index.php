@@ -77,8 +77,12 @@ $reclamUserCol = detect_column($pdo, $reclamTable, ['user_id','userId','utilisat
 $reclamCatCol = detect_column($pdo, $reclamTable, ['category_id','categorie_id','cat_id','categorie']) ?: 'category_id';
 $reclamCreatedCol = detect_column($pdo, $reclamTable, ['created_at','date_soumission','date_creation','submitted_at','date']) ?: 'created_at';
 $reclamStatusCol = detect_column($pdo, $reclamTable, ['statut','status','etat']) ?: 'statut';
-$reclamManagerCol = detect_column($pdo, $reclamTable, ['gestionnaire_id','manager_id','assigned_to','traitant_id']) ?: $reclamUserCol; // fallback
+$reclamManagerCol = detect_column($pdo, $reclamTable, ['gestionnaire_id','manager_id','assigned_to','traitant_id']);
 $reclamSubmitDateCol = $reclamCreatedCol; // Pour calcul des délais
+$reclamResolvedDateCol = detect_column($pdo, $reclamTable, ['date_resolution','resolved_at','date_traitement','date_cloture']);
+
+// DEBUG: Vérifier la détection (commenter après vérification)
+// echo "<!-- DEBUG: reclamManagerCol = " . ($reclamManagerCol ?: 'NULL') . " -->";
 
 // Construire la requête en échappant les noms de colonnes (utilisation basique)
 $query = "SELECT c.*, u.".$userNameCol." AS user_name, cat.".$catNameCol." AS category_nom "
@@ -112,18 +116,47 @@ try {
 
 // ===== ANALYSE DE L'EFFICACITÉ PAR GESTIONNAIRE (dynamiques) =====
 $managerAnalysis = [];
+$managerColumnExists = !empty($reclamManagerCol);
+
+// DEBUG: Afficher si colonne détectée
+// echo "<!-- DEBUG: managerColumnExists = " . ($managerColumnExists ? 'OUI' : 'NON') . " -->";
+
 try {
-    $managerQuery = "SELECT u.`$userNameCol` AS manager_name, u.`$userIdCol` AS user_id,
-                            COUNT(DISTINCT c.`$reclamIdCol`) AS handled_claims,
-                            SUM(CASE WHEN c.`$reclamStatusCol` IN ('resolu','closed','traite') THEN 1 ELSE 0 END) AS resolved_claims,
-                            ROUND(AVG(CASE WHEN c.`$reclamStatusCol` IN ('resolu','closed','traite') THEN TIMESTAMPDIFF(DAY, c.`$reclamSubmitDateCol`, NOW()) END),1) AS avg_days_pending
-                     FROM `users` u
-                     LEFT JOIN `".$reclamTable."` c ON u.`$userIdCol` = c.`$reclamManagerCol`
-                     WHERE u.role = 'gestionnaire'
-                     GROUP BY u.`$userIdCol`
-                     ORDER BY handled_claims DESC";
-    $managerAnalysis = $pdo->query($managerQuery)->fetchAll();
-} catch (Exception $e) { $managerAnalysis = []; }
+    if ($managerColumnExists) {
+        // Calcul du délai : si date_resolution existe, utiliser (date_resolution - date_soumission)
+        // sinon pour réclamations résolues, approximer avec NOW() - date_soumission
+        $delaiCalcul = $reclamResolvedDateCol 
+            ? "TIMESTAMPDIFF(DAY, c.`$reclamSubmitDateCol`, c.`$reclamResolvedDateCol`)"
+            : "TIMESTAMPDIFF(DAY, c.`$reclamSubmitDateCol`, NOW())";
+        
+        // Joindre avec gestionnaire_id (la colonne qui lie réclamations aux gestionnaires)
+        $managerQuery = "SELECT u.`$userNameCol` AS manager_name, u.`$userIdCol` AS user_id,
+                                COUNT(DISTINCT c.`$reclamIdCol`) AS handled_claims,
+                                SUM(CASE WHEN c.`$reclamStatusCol` IN ('resolu','closed','traite') THEN 1 ELSE 0 END) AS resolved_claims,
+                                ROUND(AVG(CASE WHEN c.`$reclamStatusCol` IN ('resolu','closed','traite') THEN $delaiCalcul END),1) AS avg_days_resolution
+                         FROM `users` u
+                         LEFT JOIN `".$reclamTable."` c ON u.`$userIdCol` = c.`$reclamManagerCol`
+                         WHERE u.role = 'gestionnaire'
+                         GROUP BY u.`$userIdCol`
+                         ORDER BY handled_claims DESC";
+        
+        // DEBUG: Afficher la requête
+        // echo "<!-- DEBUG SQL: " . htmlspecialchars($managerQuery) . " -->";
+        
+        $managerAnalysis = $pdo->query($managerQuery)->fetchAll();
+        
+        // DEBUG: Afficher résultat
+        // echo "<!-- DEBUG: Résultats trouvés = " . count($managerAnalysis) . " -->";
+    } else {
+        // Si pas de colonne gestionnaire, afficher message
+        $managerAnalysis = [];
+    }
+} catch (Exception $e) { 
+    // En cas d'erreur SQL, afficher l'erreur en commentaire HTML
+    echo "<!-- ERREUR SQL: " . htmlspecialchars($e->getMessage()) . " -->";
+    error_log("Erreur requête gestionnaires: " . $e->getMessage());
+    $managerAnalysis = []; 
+}
 
 // ===== DÉLAI MOYEN DE TRAITEMENT ===== (utilise colonnes dynamiques si possible)
 $avgProcessingTime = 0;
@@ -264,19 +297,35 @@ include '../../includes/head.php';
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php foreach ($managerAnalysis as $manager): ?>
+                                                <?php foreach ($managerAnalysis as $manager): 
+                                                    $efficiency = $manager['handled_claims'] > 0 ? round(($manager['resolved_claims'] / $manager['handled_claims']) * 100) : 0;
+                                                ?>
                                                     <tr>
                                                         <td class="ps-4 fw-bold"><?php echo htmlspecialchars($manager['manager_name'] ?? '—'); ?></td>
                                                         <td><span class="badge bg-info"><?php echo $manager['handled_claims']; ?></span></td>
-                                                        <td><span class="badge bg-success"><?php echo $manager['resolved_claims']; ?></span></td>
-                                                        <td class="text-end pe-4"><?php echo $manager['avg_days_pending'] ?? '—'; ?> j</td>
+                                                        <td>
+                                                            <span class="badge bg-success"><?php echo $manager['resolved_claims']; ?></span>
+                                                            <small class="text-muted ms-1">(<?php echo $efficiency; ?>%)</small>
+                                                        </td>
+                                                        <td class="text-end pe-4">
+                                                            <?php 
+                                                                $delai = $manager['avg_days_resolution'] ?? $manager['avg_days_pending'] ?? null;
+                                                                if ($delai !== null && $delai > 0): 
+                                                            ?>
+                                                                <span class="badge <?php echo $delai < 7 ? 'bg-success' : ($delai < 14 ? 'bg-warning text-dark' : 'bg-danger'); ?>">
+                                                                    <?php echo number_format($delai, 1); ?> j
+                                                                </span>
+                                                            <?php else: ?>
+                                                                <span class="text-muted">—</span>
+                                                            <?php endif; ?>
+                                                        </td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
                                         </table>
                                     </div>
                                 <?php else: ?>
-                                    <p class="text-center text-muted p-4">Pas de données disponibles.</p>
+                                    <p class="text-center text-muted p-4">Aucun gestionnaire n'a encore de réclamations assignées.</p>
                                 <?php endif; ?>
                             </div>
                         </div>
