@@ -38,8 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email_submit'])) {
             
             $user_name = $user['prenom'] . ' ' . $user['nom'];
             
+            // Vérifier le mode (converti en booléen)
+            $dev_mode = (defined('DEV_MODE') && (DEV_MODE === 'true' || DEV_MODE === true || DEV_MODE === '1'));
+            
             // MODE DÉVELOPPEMENT: Afficher le code
-            if (DEV_MODE) {
+            if ($dev_mode) {
                 $success = "Un code de vérification a été envoyé à votre adresse email.";
                 $error = "🔧 MODE DEV - Votre code est: <strong>$code</strong> (valide 15 min)";
                 $step = 'code';

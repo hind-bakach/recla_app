@@ -35,6 +35,19 @@ function loadEnv($path) {
 // Charger le fichier .env
 loadEnv(__DIR__ . '/../.env');
 
+// Convertir DEV_MODE en booléen si c'est une string
+if (defined('DEV_MODE') && is_string(DEV_MODE)) {
+    $dev_mode_value = (DEV_MODE === 'true' || DEV_MODE === '1');
+    define('DEV_MODE_BOOL', $dev_mode_value);
+} else {
+    define('DEV_MODE_BOOL', defined('DEV_MODE') ? (bool)DEV_MODE : false);
+}
+
+// Redéfinir DEV_MODE comme booléen
+if (!defined('DEV_MODE_FINAL')) {
+    define('DEV_MODE_FINAL', DEV_MODE_BOOL);
+}
+
 // Vérifier que les variables requises sont définies
 $required_vars = ['EMAIL_METHOD', 'EMAIL_FROM', 'EMAIL_FROM_NAME', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD', 'SMTP_SECURE'];
 foreach ($required_vars as $var) {
@@ -147,6 +160,10 @@ function send_email_smtp($to, $subject, $html_message, $text_message) {
     $mail = new PHPMailer\PHPMailer\PHPMailer(true);
     
     try {
+        // Debug SMTP (décommenter pour voir les détails)
+        // $mail->SMTPDebug = 2; // 0=off, 1=client, 2=client+server
+        // $mail->Debugoutput = 'html';
+        
         // Configuration SMTP
         $mail->isSMTP();
         $mail->Host       = SMTP_HOST;
@@ -158,13 +175,13 @@ function send_email_smtp($to, $subject, $html_message, $text_message) {
         $mail->CharSet    = 'UTF-8';
         
         // Désactiver la vérification SSL en développement (RETIRER EN PRODUCTION)
-        // $mail->SMTPOptions = array(
-        //     'ssl' => array(
-        //         'verify_peer' => false,
-        //         'verify_peer_name' => false,
-        //         'allow_self_signed' => true
-        //     )
-        // );
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );
         
         // Expéditeur et destinataire
         $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
@@ -180,7 +197,12 @@ function send_email_smtp($to, $subject, $html_message, $text_message) {
         return true;
         
     } catch (Exception $e) {
-        error_log("Erreur d'envoi d'email: {$mail->ErrorInfo}");
+        $error_msg = "Erreur d'envoi d'email: {$mail->ErrorInfo}";
+        error_log($error_msg);
+        // En mode développement, afficher l'erreur
+        if (defined('DEV_MODE') && (DEV_MODE === 'true' || DEV_MODE === true)) {
+            echo "<!-- DEBUG EMAIL ERROR: " . htmlspecialchars($error_msg) . " -->";
+        }
         return false;
     }
 }
