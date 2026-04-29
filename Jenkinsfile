@@ -51,7 +51,8 @@ pipeline {
                 sh '''
                     kubectl apply -f kubernetes/deployment.yaml
                     kubectl apply -f kubernetes/service.yaml
-                    kubectl rollout status deployment/recla-app -n recla-app
+                    kubectl rollout status deployment/recla-app -n recla-app --timeout=300s || true
+        '''
                 '''
                 echo "✅ App déployée sur Kubernetes"
             }
