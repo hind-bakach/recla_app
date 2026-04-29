@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: recla-app-service
+  namespace: recla-app
+spec:
+  selector:
+    app: recla-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+    nodePort: 30080
+  type: NodePort
