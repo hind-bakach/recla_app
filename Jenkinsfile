@@ -52,7 +52,6 @@ pipeline {
                     kubectl apply -f kubernetes/deployment.yaml
                     kubectl apply -f kubernetes/service.yaml
                     kubectl rollout status deployment/recla-app -n recla-app --timeout=300s || true
-        '''
                 '''
                 echo "✅ App déployée sur Kubernetes"
             }
@@ -61,14 +60,7 @@ pipeline {
 
     post {
         success {
-            echo '''
-            🎉 PIPELINE RÉUSSI !
-            ✅ Code vérifié
-            ✅ Image Docker buildée
-            ✅ Terraform OK
-            ✅ Déployé sur Kubernetes
-            App : http://localhost:30080
-            '''
+            echo '🎉 PIPELINE RÉUSSI !'
         }
         failure {
             echo '❌ Pipeline échoué — consulter les logs'

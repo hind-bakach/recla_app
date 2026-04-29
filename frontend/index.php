@@ -69,7 +69,6 @@ $extra_head_content = '
 
     <!-- Hero Section -->
     <section class="hero-modern">
-        <p> Pipeline test</p>
         <div class="hero-background">
             <div class="hero-shape hero-shape-1"></div>
             <div class="hero-shape hero-shape-2"></div>
